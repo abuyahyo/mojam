@@ -57,6 +57,21 @@
   .tool:active{transform:scale(.95)}
   .tool.on{background:var(--accent);color:#f7efdd;border-color:var(--accent)}
   .tool.icon{padding:8px 14px;min-width:48px;justify-content:center;font-weight:700}
+  body[data-mode="read"] .group-toggle{display:none}
+
+  /* Comparison card (group-by-root mode) */
+  .merged-card{background:rgba(251,245,230,.78);border:1px solid var(--line);border-radius:16px;padding:clamp(14px,3.5vw,20px);margin-bottom:14px;box-shadow:0 2px 12px rgba(43,33,24,.05);animation:rise .35s ease both}
+  .merged-card>.root{font-family:"Amiri","Scheherazade New",serif;font-weight:700;color:var(--accent);font-size:clamp(26px,6.5vw,36px);text-align:center;padding-bottom:8px;border-bottom:2px solid var(--line);margin-bottom:12px}
+  .merged-card .section{margin-top:14px;padding-right:12px}
+  .merged-card .section:first-of-type{margin-top:4px}
+  .merged-card .sec-label{display:inline-block;font-family:"Amiri",serif;font-weight:700;font-size:14px;color:#fff;padding:3px 12px;border-radius:12px;margin-bottom:8px}
+  .merged-card .section[data-src="lisan"]{border-right:4px solid var(--lisan)}
+  .merged-card .section[data-src="lisan"] .sec-label{background:var(--lisan)}
+  .merged-card .section[data-src="maqayis"]{border-right:4px solid var(--maqayis)}
+  .merged-card .section[data-src="maqayis"] .sec-label{background:var(--maqayis)}
+  .merged-card .section[data-src="mufradat"]{border-right:4px solid var(--mufradat)}
+  .merged-card .section[data-src="mufradat"] .sec-label{background:var(--mufradat)}
+  .merged-card .sec-body{font-size:calc(clamp(15px,4vw,18px)*var(--reader-scale));line-height:2}
 
   .searchbar{position:relative;margin-bottom:10px}
   .searchbar input{width:100%;font-family:"Amiri",serif;font-size:clamp(20px,5.5vw,28px);font-weight:700;color:var(--ink);background:#fbf5e6;border:1.5px solid var(--line);border-radius:16px;padding:14px 54px 14px 20px;outline:none;text-align:right;box-shadow:0 2px 10px rgba(124,45,18,.05)}
@@ -144,6 +159,7 @@
   <div class="toolbar">
     <button class="tool icon" id="incBtn" title="تكبير الخطّ">ا+</button>
     <button class="tool icon" id="decBtn" title="تصغير الخطّ">ا−</button>
+    <button class="tool group-toggle" id="groupToggle" title="تبديل تجميع النتائج">🗂️ مجموع بالكتاب</button>
   </div>
 
   <div class="searchbar">
@@ -240,9 +256,11 @@ const filtersEl = $("#filters");
 let DATA = { maqayis: [], mufradat: [] };
 let LISAN_ROOTS = [];        // [[root_norm, page, chunkIdx], ...]
 let LISAN_CHUNKS = [];       // [{idx, first_page, last_page, file, size_kb}, ...]
+let LISAN_CHAPTERS = {};     // letter → first_page (derived from LISAN_ROOTS)
 const LISAN_CHUNK_CACHE = {}; // chunkIdx → pages array
 let ROOTSET = new Set();     // all known normalized roots (xref target check)
 let activeSources = new Set(["lisan", "maqayis", "mufradat"]);
+let groupMode = localStorage.getItem("group_mode") || "book"; // "book" | "root"
 let scale = parseFloat(localStorage.getItem("reader_scale") || "1") || 1;
 
 /* ============================================================
@@ -278,6 +296,11 @@ async function loadInitial() {
       });
     }
     for (const r of LISAN_ROOTS) if (r[0]) ROOTSET.add(r[0]);
+    // Lisan chapter index: first page per starting letter
+    for (const [root, page] of LISAN_ROOTS) {
+      const L = root[0];
+      if (L && !(L in LISAN_CHAPTERS)) LISAN_CHAPTERS[L] = page;
+    }
     countEl.textContent = "";
   } catch (err) {
     countEl.textContent = "";
@@ -413,22 +436,18 @@ function cardHTML_lisanResult(rootEntry, nq) {
     '<div class="body"><button class="load-btn" data-action="load-lisan">عرض النصّ</button></div></article>';
 }
 
-async function expandLisanCard(card) {
-  const chunkIdx = parseInt(card.dataset.chunk, 10);
-  const page = parseInt(card.dataset.page, 10);
-  const bodyEl = card.querySelector(".body");
-  bodyEl.innerHTML = '<span class="loading">جارٍ تحميل الصفحة…</span>';
+async function expandLisanInto(targetEl, page, chunkIdx) {
+  targetEl.innerHTML = '<span class="loading">جارٍ تحميل الصفحة…</span>';
   try {
     const pages = await loadLisanChunk(chunkIdx);
-    // show current page + next 2 pages for context
     const startIdx = pages.findIndex(p => p.page === page);
     const slice = pages.slice(startIdx, startIdx + 3);
-    bodyEl.innerHTML = slice.map(p =>
+    targetEl.innerHTML = slice.map(p =>
       '<div class="lisan-page-marker">— صفحة ' + arNum(p.page) + ' —</div>' +
       cardBody(p.text || "", "")
     ).join("");
   } catch (err) {
-    bodyEl.innerHTML = '<span class="loading">تعذّر التحميل</span>';
+    targetEl.innerHTML = '<span class="loading">تعذّر التحميل</span>';
   }
 }
 
@@ -503,6 +522,10 @@ function doSearch(q) {
   }
   countEl.textContent = arNum(total) + " نتيجة" + (expanded ? " (من داخل الشروح)" : "");
 
+  resEl.innerHTML = groupMode === "root" ? renderByRoot(groups, nq) : renderByBook(groups, nq);
+}
+
+function renderByBook(groups, nq) {
   let html = "";
   for (const src of ["maqayis", "mufradat", "lisan"]) {
     if (!groups[src]) continue;
@@ -515,7 +538,51 @@ function doSearch(q) {
       html += items.map(e => cardHTML_dict(e, nq)).join("");
     }
   }
-  resEl.innerHTML = html;
+  return html;
+}
+
+/* Merge groups by normalized root. Each root → up to 3 sections (one per book).
+ * Roots that only appear in one book still render as a merged card with that
+ * one section, but the search uses the same layout for visual consistency. */
+function renderByRoot(groups, nq) {
+  const byRoot = new Map();
+  const order = []; // preserve first-seen order across all books
+  function bump(rootNorm, displayRoot, src, item) {
+    if (!byRoot.has(rootNorm)) {
+      byRoot.set(rootNorm, { displayRoot, entries: {} });
+      order.push(rootNorm);
+    }
+    const slot = byRoot.get(rootNorm).entries;
+    if (!slot[src]) slot[src] = item; // first match per book wins
+  }
+  // order books so that the "richer" entries come first
+  for (const src of ["maqayis", "mufradat", "lisan"]) {
+    const items = groups[src] || [];
+    for (const it of items) {
+      if (src === "lisan") bump(it[0], it[0], src, it);
+      else bump(it._n, it.root, src, it);
+    }
+  }
+  let html = "";
+  for (const rootNorm of order) {
+    const { displayRoot, entries } = byRoot.get(rootNorm);
+    html += '<article class="merged-card"><h2 class="root">' + highlight(esc(displayRoot), nq) + '</h2>';
+    for (const src of ["maqayis", "mufradat", "lisan"]) {
+      const item = entries[src];
+      if (!item) continue;
+      html += '<div class="section" data-src="' + src + '">';
+      html += '<span class="sec-label">' + BOOKS[src].name + '</span>';
+      if (src === "lisan") {
+        html += '<div class="sec-body"><div style="color:var(--ink-soft);font-size:13px;margin-bottom:8px">صفحة ' + arNum(item[1]) + '</div>' +
+                '<button class="load-btn" data-action="load-lisan" data-page="' + item[1] + '" data-chunk="' + item[2] + '">عرض النصّ</button></div>';
+      } else {
+        html += '<div class="sec-body">' + highlight(cardBody(item.text, item._n), nq) + '</div>';
+      }
+      html += '</div>';
+    }
+    html += '</article>';
+  }
+  return html;
 }
 
 /* ============================================================
@@ -581,7 +648,17 @@ alphaEl.addEventListener("click", e => {
   const b = e.target.closest("button.al"); if (!b) return;
   const L = b.dataset.l;
   markAlpha(L);
-  if (readingBook && readingBook !== "lisan") {
+  if (!readingBook) return;
+  if (readingBook === "lisan") {
+    const Ln = normalize(L);
+    const firstPage = LISAN_CHAPTERS[Ln];
+    if (firstPage) {
+      lisanReadCursor = firstPage;
+      resEl.innerHTML = "";
+      appendLisanPages();
+      window.scrollTo({ top: 0 });
+    }
+  } else {
     const idx = firstIndexOfLetter(readingBook, L);
     if (idx >= 0) {
       readCursor = idx;
@@ -623,8 +700,14 @@ filtersEl.addEventListener("click", e => {
 resEl.addEventListener("click", e => {
   const lb = e.target.closest("button.load-btn");
   if (lb) {
+    // load-btn carries page+chunk in dataset (merged-card form), or inherits
+    // them from the parent .card (by-book form). Support both.
     const card = lb.closest(".card");
-    if (card) expandLisanCard(card);
+    const page = parseInt(lb.dataset.page || (card && card.dataset.page) || "0", 10);
+    const chunkIdx = parseInt(lb.dataset.chunk || (card && card.dataset.chunk) || "-1", 10);
+    if (!page || chunkIdx < 0) return;
+    const target = card ? card.querySelector(".body") : lb.parentElement;
+    expandLisanInto(target, page, chunkIdx);
     return;
   }
   const xr = e.target.closest("a.xref");
@@ -636,6 +719,20 @@ resEl.addEventListener("click", e => {
     doSearch(xr.dataset.q);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+});
+
+const groupToggleEl = $("#groupToggle");
+function refreshGroupToggleLabel() {
+  groupToggleEl.textContent = groupMode === "book"
+    ? "🗂️ مجموع بالكتاب"
+    : "📚 جنبًا إلى جنب";
+}
+refreshGroupToggleLabel();
+groupToggleEl.addEventListener("click", () => {
+  groupMode = groupMode === "book" ? "root" : "book";
+  localStorage.setItem("group_mode", groupMode);
+  refreshGroupToggleLabel();
+  doSearch(qEl.value);
 });
 
 $("#readPicker").addEventListener("click", e => {
