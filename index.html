@@ -51,6 +51,10 @@
   body[data-mode="search"] .read-picker{display:none}
   body[data-mode="search"] .alpha{display:none}
   body[data-mode="read"] .alpha{display:flex}
+  body[data-mode="read"]:not([data-reading]) .alpha,
+  body[data-mode="read"]:not([data-reading]) .alpha-label{display:none}
+  .alpha-label{display:none;text-align:center;color:var(--ink-soft);font-family:"Amiri",serif;font-size:13px;margin:6px 0 0}
+  body[data-mode="read"][data-reading] .alpha-label{display:block}
 
   .toolbar{display:flex;justify-content:center;gap:10px;margin:clamp(16px,4vw,26px) 0 14px;flex-wrap:wrap}
   .tool{font-family:"Amiri",serif;font-size:clamp(15px,3.6vw,18px);background:var(--paper-deep);border:1px solid var(--line);color:var(--ink);border-radius:24px;padding:8px 18px;cursor:pointer;user-select:none;transition:transform .12s,background .15s,color .15s;display:inline-flex;align-items:center;gap:6px}
@@ -188,6 +192,7 @@
     </button>
   </div>
 
+  <div class="alpha-label">انتقل إلى حرف</div>
   <div class="alpha" id="alpha"></div>
 
   <div class="count" id="count"></div>
@@ -644,6 +649,7 @@ async function appendLisanPages() {
 
 function startReading(book) {
   readingBook = book;
+  document.body.dataset.reading = book;
   resEl.innerHTML = "";
   countEl.textContent = "قراءة: " + BOOKS[book].name;
   if (book === "lisan") {
@@ -657,7 +663,18 @@ function startReading(book) {
 
 function firstIndexOfLetter(src, L) {
   const Ln = normalize(L);
-  return DATA[src].findIndex(e => e._n.startsWith(Ln));
+  // Prefer entries that look like real roots: short single-word _n.
+  // Falls back to any startsWith match if no short-root candidate found
+  // (covers Maqayis cleanly; skips Mufradat's preface entries like
+  // "المصادر التي اعتمد عليها الراغب…" which would otherwise hijack ا).
+  let strict = -1, loose = -1;
+  for (let i = 0; i < DATA[src].length; i++) {
+    const e = DATA[src][i];
+    if (!e._n.startsWith(Ln)) continue;
+    if (loose < 0) loose = i;
+    if (e._n.length <= 5 && !e.root.includes(" ")) { strict = i; break; }
+  }
+  return strict >= 0 ? strict : loose;
 }
 
 alphaEl.addEventListener("click", e => {
@@ -762,6 +779,7 @@ function uiMode(m) {
   document.body.dataset.mode = m;
   tabSearch.classList.toggle("on", m === "search");
   tabRead.classList.toggle("on", m === "read");
+  delete document.body.dataset.reading;
   if (m === "search") {
     readingBook = null;
     doSearch(qEl.value);
