@@ -131,11 +131,9 @@
   .body .hadith{color:var(--accent-bright);font-weight:600}
   .body a.xref{color:var(--accent-bright);cursor:pointer;border-bottom:1px dashed var(--accent-bright);text-decoration:none}
   .body .para.footnote{font-size:.86em;color:var(--ink-soft);background:rgba(216,201,166,.20);border-right:3px solid var(--gold);padding:7px 12px;margin:8px 0;border-radius:6px;line-height:1.75}
-  .lisan-page-marker{display:block;margin:14px 0 8px;color:var(--lisan);font-family:"Amiri",serif;font-size:13px;border-top:1px dashed var(--line);padding-top:8px}
 
   .load-btn{background:var(--lisan);color:#fff;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-family:"Amiri",serif;font-size:15px;margin-top:8px}
   .load-btn:active{transform:scale(.96)}
-  .lisan-full-btn{display:block;background:transparent;color:var(--lisan);border:1px solid var(--lisan);padding:6px 14px;font-size:13px;margin-top:14px}
   .loading{color:var(--ink-soft);font-style:italic;font-family:"Amiri",serif;font-size:14px}
 
   .empty{text-align:center;color:var(--ink-soft);padding:56px 20px;font-family:"Amiri",serif}
@@ -276,10 +274,10 @@ const qEl = $("#q"), clearEl = $("#clear"), countEl = $("#count"), resEl = $("#r
 const filtersEl = $("#filters");
 
 let DATA = { maqayis: [], mufradat: [] };
-let LISAN_ROOTS = [];        // [[root_norm, page, chunkIdx], ...]
-let LISAN_CHUNKS = [];       // [{idx, first_page, last_page, file, size_kb}, ...]
-let LISAN_CHAPTERS = {};     // letter → first_page (derived from LISAN_ROOTS)
-const LISAN_CHUNK_CACHE = {}; // chunkIdx → pages array
+let LISAN_ROOTS = [];        // [[root_norm, chunkIdx, entryIdx], ...] reading order
+let LISAN_CHUNKS = [];       // [{idx, file, start, count, size_kb}, ...]
+let LISAN_CHAPTERS = {};     // letter → first entry index (derived from LISAN_ROOTS)
+const LISAN_CHUNK_CACHE = {}; // chunkIdx → entries array [{root, text}, ...]
 let ROOTSET = new Set();     // all known normalized roots (xref target check)
 let activeSources = new Set(["lisan", "maqayis", "mufradat"]);
 let groupMode = localStorage.getItem("group_mode") || "book"; // "book" | "root"
@@ -318,11 +316,12 @@ async function loadInitial() {
       });
     }
     for (const r of LISAN_ROOTS) if (r[0]) ROOTSET.add(r[0]);
-    // Lisan is organized by BAB = last letter of root (classical Khalil order).
-    // Detect each BAB's start with a sliding window: earliest position (after
-    // the preface) where ≥40% of the next 25 roots end in that letter. The
-    // ALIF chapter sits at the END of the book, so we ignore early ا hits.
-    const W = 25, MIN_FRAC = 0.4, SKIP = 50, ALIF_MIN_PAGE = 7000;
+    // Lisan is organized by BAB = last letter of root (classical Khalil order)
+    // and stored as entries in reading order. Detect each BAB's start with a
+    // sliding window: earliest entry index (after the preface) where ≥40% of
+    // the next 25 roots end in that letter. The ALIF chapter sits at the END
+    // of the book, so we ignore early ا hits.
+    const W = 25, MIN_FRAC = 0.4, SKIP = 50, ALIF_MIN_IDX = LISAN_ROOTS.length * 0.85;
     for (let i = SKIP; i + W <= LISAN_ROOTS.length; i++) {
       const counts = {};
       for (let j = 0; j < W; j++) {
@@ -334,9 +333,8 @@ async function loadInitial() {
       for (const L in counts) {
         if (L in LISAN_CHAPTERS) continue;
         if (counts[L] / W < MIN_FRAC) continue;
-        const page = LISAN_ROOTS[i][1];
-        if (L === "ا" && page < ALIF_MIN_PAGE) continue;
-        LISAN_CHAPTERS[L] = page;
+        if (L === "ا" && i < ALIF_MIN_IDX) continue;
+        LISAN_CHAPTERS[L] = i;  // global entry index
       }
     }
     countEl.textContent = "";
@@ -351,13 +349,9 @@ async function loadLisanChunk(chunkIdx) {
   if (LISAN_CHUNK_CACHE[chunkIdx]) return LISAN_CHUNK_CACHE[chunkIdx];
   const meta = LISAN_CHUNKS[chunkIdx];
   if (!meta) return null;
-  const pages = await loadJSON("data/lisan/" + meta.file);
-  LISAN_CHUNK_CACHE[chunkIdx] = pages;
-  return pages;
-}
-
-function lisanPageText(pages, pageNum) {
-  return (pages.find(p => p.page === pageNum) || {}).text || "";
+  const entries = await loadJSON("data/lisan/" + meta.file);
+  LISAN_CHUNK_CACHE[chunkIdx] = entries;
+  return entries;
 }
 
 /* ============================================================
@@ -386,7 +380,7 @@ function searchBookBody(src, nq) {
 }
 
 function searchLisan(nq) {
-  // Match in roots.json index. Each entry: [root_norm, page, chunkIdx]
+  // Match in roots.json index. Each entry: [root_norm, chunkIdx, entryIdx]
   const exact = [], starts = [], incl = [];
   for (const r of LISAN_ROOTS) {
     if (r[0] === nq) exact.push(r);
@@ -481,51 +475,24 @@ function cardHTML_dict(e, nq) {
 }
 
 function cardHTML_lisanResult(rootEntry, nq) {
-  const [root, page, chunkIdx] = rootEntry;
-  return '<article class="card lisan-result" data-src="lisan" data-root="' + esc(root) + '" data-page="' + page + '" data-chunk="' + chunkIdx + '">' +
+  const [root, chunkIdx, entryIdx] = rootEntry;
+  return '<article class="card lisan-result" data-src="lisan" data-root="' + esc(root) + '" data-chunk="' + chunkIdx + '" data-entry="' + entryIdx + '">' +
     '<div class="card-head"><h2 class="root">' + highlight(esc(root), nq) + '</h2>' +
     '<span class="ref">لسان العرب</span></div>' +
     '<div class="body"><span class="loading">جارٍ التحميل…</span></div></article>';
 }
 
-/* A Lisan page may hold several root entries. Each entry starts on its own
- * line as "الجذر:" (matching build_lisan.py's ROOT_RE). Given the searched
- * root, slice out just its entry — from its marker line up to the next root
- * marker — so the result shows only the word the user looked up. Falls back
- * to the whole page when no boundary can be located. */
-const LISAN_MARKER_RE = /^([ء-ي]{2,6})\s*:$/;
-function extractLisanEntry(text, rootNorm) {
-  if (!rootNorm) return null;
-  const lines = text.split("\n");
-  const markers = []; // {i, root}
-  for (let i = 0; i < lines.length; i++) {
-    const m = normalize(lines[i]).match(LISAN_MARKER_RE);
-    if (m) markers.push({ i, root: m[1] });
-  }
-  if (!markers.length) return null;
-  let hit = markers.findIndex(mk => mk.root === rootNorm);
-  if (hit === -1) hit = markers.findIndex(mk => mk.root.startsWith(rootNorm) || rootNorm.startsWith(mk.root));
-  if (hit === -1) return null;
-  const start = markers[hit].i;
-  const end = hit + 1 < markers.length ? markers[hit + 1].i : lines.length;
-  return lines.slice(start, end).join("\n").trim();
-}
-
-async function expandLisanInto(targetEl, page, chunkIdx, root) {
-  targetEl.innerHTML = '<span class="loading">جارٍ تحميل الصفحة…</span>';
+/* Lisan entries are stored one per root (like maqayis / mufradat) inside the
+ * lazily-loaded chunk files. Load the chunk and render the entry directly. */
+async function expandLisanInto(targetEl, chunkIdx, entryIdx, root) {
+  targetEl.innerHTML = '<span class="loading">جارٍ التحميل…</span>';
   try {
-    const pages = await loadLisanChunk(chunkIdx);
-    const p = pages.find(x => x.page === page);
-    if (!p) { targetEl.innerHTML = ""; return; }
-    const full = p.text || "";
-    const entry = extractLisanEntry(full, root);
-    if (entry) {
-      targetEl.innerHTML = cardBody(entry, root) +
-        '<button class="load-btn lisan-full-btn" data-action="lisan-full" data-page="' +
-        page + '" data-chunk="' + chunkIdx + '">عرض الصفحة كاملة</button>';
-    } else {
-      targetEl.innerHTML = cardBody(full, root || "");
-    }
+    const entries = await loadLisanChunk(chunkIdx);
+    if (!entries) { targetEl.innerHTML = ""; return; }
+    let e = entries[entryIdx];
+    if (!e || (root && e.root !== root)) e = entries.find(x => x.root === root) || e;
+    if (!e) { targetEl.innerHTML = ""; return; }
+    targetEl.innerHTML = cardBody(e.text || "", e.root);
   } catch (err) {
     targetEl.innerHTML = '<span class="loading">تعذّر التحميل</span>';
   }
@@ -618,11 +585,11 @@ async function hydrateLisanCards() {
       if (!body) return null;
       // merged-card sections include the manual load button — auto-load there too
       const loadBtn = body.querySelector("button.load-btn");
-      const page = parseInt(card.dataset.page || (loadBtn && loadBtn.dataset.page) || "0", 10);
       const chunkIdx = parseInt(card.dataset.chunk || (loadBtn && loadBtn.dataset.chunk) || "-1", 10);
+      const entryIdx = parseInt(card.dataset.entry || (loadBtn && loadBtn.dataset.entry) || "-1", 10);
       const root = card.dataset.root || (loadBtn && loadBtn.dataset.root) || "";
-      if (!page || chunkIdx < 0) return null;
-      return { body, page, chunkIdx, root };
+      if (chunkIdx < 0 || entryIdx < 0) return null;
+      return { body, chunkIdx, entryIdx, root };
     })
     .filter(Boolean);
   let next = 0;
@@ -632,7 +599,7 @@ async function hydrateLisanCards() {
       while (next < tasks.length) {
         const t = tasks[next++];
         try {
-          await expandLisanInto(t.body, t.page, t.chunkIdx, t.root);
+          await expandLisanInto(t.body, t.chunkIdx, t.entryIdx, t.root);
         } catch (e) { /* leave body as-is on failure */ }
       }
     })());
@@ -688,8 +655,7 @@ function renderByRoot(groups, nq) {
       html += '<div class="section" data-src="' + src + '">';
       html += '<span class="sec-label">' + BOOKS[src].name + '</span>';
       if (src === "lisan") {
-        html += '<div class="sec-body"><div style="color:var(--ink-soft);font-size:13px;margin-bottom:8px">صفحة ' + arNum(item[1]) + '</div>' +
-                '<button class="load-btn" data-action="load-lisan" data-root="' + esc(item[0]) + '" data-page="' + item[1] + '" data-chunk="' + item[2] + '">عرض النصّ</button></div>';
+        html += '<div class="sec-body"><button class="load-btn" data-action="load-lisan" data-root="' + esc(item[0]) + '" data-chunk="' + item[1] + '" data-entry="' + item[2] + '">عرض النصّ</button></div>';
       } else {
         html += '<div class="sec-body">' + highlight(cardBody(item.text, item._n), nq) + '</div>';
       }
@@ -721,24 +687,23 @@ function appendDictChunk(src) {
   readCursor = end;
 }
 
-let lisanReadCursor = 1;
-async function appendLisanPages() {
-  const totalPages = LISAN_CHUNKS.length ? LISAN_CHUNKS[LISAN_CHUNKS.length-1].last_page : 8101;
-  if (lisanReadCursor > totalPages) return;
-  // load chunk containing current page
-  const chunk = LISAN_CHUNKS.find(c => lisanReadCursor >= c.first_page && lisanReadCursor <= c.last_page);
+let lisanReadCursor = 0;  // global entry index
+async function appendLisanEntries() {
+  if (lisanReadCursor >= LISAN_ROOTS.length) return;
+  const i = lisanReadCursor;
+  const chunk = LISAN_CHUNKS.find(c => i >= c.start && i < c.start + c.count);
   if (!chunk) return;
-  const pages = await loadLisanChunk(chunk.idx);
-  const sliceEnd = Math.min(lisanReadCursor + 5, chunk.last_page + 1);
-  const slice = pages.filter(p => p.page >= lisanReadCursor && p.page < sliceEnd);
-  const html = slice.map(p =>
+  const entries = await loadLisanChunk(chunk.idx);
+  const localStart = i - chunk.start;
+  const localEnd = Math.min(localStart + CHUNK, entries.length);
+  const html = entries.slice(localStart, localEnd).map(e =>
     '<article class="card" data-src="lisan"><div class="card-head">' +
-    '<h2 class="root">صفحة ' + arNum(p.page) + '</h2>' +
+    '<h2 class="root">' + esc(e.root) + '</h2>' +
     '<span class="ref">لسان العرب</span></div>' +
-    '<div class="body">' + cardBody(p.text || "", "") + '</div></article>'
+    '<div class="body">' + cardBody(e.text || "", e.root) + '</div></article>'
   ).join("");
   resEl.insertAdjacentHTML("beforeend", html);
-  lisanReadCursor = sliceEnd;
+  lisanReadCursor = chunk.start + localEnd;
 }
 
 function startReading(book) {
@@ -747,8 +712,8 @@ function startReading(book) {
   resEl.innerHTML = "";
   countEl.textContent = "قراءة: " + BOOKS[book].name;
   if (book === "lisan") {
-    lisanReadCursor = 1;
-    appendLisanPages();
+    lisanReadCursor = 0;
+    appendLisanEntries();
   } else {
     readCursor = 0;
     appendDictChunk(book);
@@ -790,11 +755,11 @@ alphaEl.addEventListener("click", e => {
   if (!readingBook) return;
   if (readingBook === "lisan") {
     const Ln = normalize(L);
-    const firstPage = LISAN_CHAPTERS[Ln];
-    if (firstPage) {
-      lisanReadCursor = firstPage;
+    const firstIdx = LISAN_CHAPTERS[Ln];
+    if (firstIdx != null) {
+      lisanReadCursor = firstIdx;
       resEl.innerHTML = "";
-      appendLisanPages();
+      appendLisanEntries();
       window.scrollTo({ top: 0 });
     }
   } else {
@@ -839,17 +804,15 @@ filtersEl.addEventListener("click", e => {
 resEl.addEventListener("click", e => {
   const lb = e.target.closest("button.load-btn");
   if (lb) {
-    // load-btn carries page+chunk in dataset (merged-card form), or inherits
-    // them from the parent .card (by-book form). Support both. data-action
-    // "lisan-full" reloads the whole page; otherwise show just the root entry.
+    // load-btn carries chunk+entry in dataset (merged-card form), or inherits
+    // them from the parent .card (by-book form). Support both.
     const card = lb.closest(".card");
-    const page = parseInt(lb.dataset.page || (card && card.dataset.page) || "0", 10);
     const chunkIdx = parseInt(lb.dataset.chunk || (card && card.dataset.chunk) || "-1", 10);
-    if (!page || chunkIdx < 0) return;
+    const entryIdx = parseInt(lb.dataset.entry || (card && card.dataset.entry) || "-1", 10);
+    if (chunkIdx < 0 || entryIdx < 0) return;
     const target = card ? card.querySelector(".body") : lb.parentElement;
-    const root = lb.dataset.action === "lisan-full"
-      ? "" : (lb.dataset.root || (card && card.dataset.root) || "");
-    expandLisanInto(target, page, chunkIdx, root);
+    const root = lb.dataset.root || (card && card.dataset.root) || "";
+    expandLisanInto(target, chunkIdx, entryIdx, root);
     return;
   }
   const xr = e.target.closest("a.xref");
@@ -907,7 +870,7 @@ addEventListener("scroll", () => {
   toTop.classList.toggle("show", scrollY > 600);
   if (!readingBook) return;
   if (innerHeight + scrollY >= document.body.offsetHeight - 900) {
-    if (readingBook === "lisan") appendLisanPages();
+    if (readingBook === "lisan") appendLisanEntries();
     else if (readCursor < DATA[readingBook].length) appendDictChunk(readingBook);
   }
 });
