@@ -107,6 +107,8 @@
   .body .para{margin:0 0 .55em}
   .body .para:last-child{margin-bottom:0}
   .body mark,.card-head mark{background:#f0d878;color:inherit;border-radius:3px;padding:0 1px}
+  .body .ayah{color:#2c6e49;font-weight:600;font-family:"Scheherazade New","Amiri",serif}
+  .body .ayah-ref{color:var(--gold);font-size:.82em;font-style:normal}
   .lisan-page-marker{display:block;margin:14px 0 8px;color:var(--lisan);font-family:"Amiri",serif;font-size:13px;border-top:1px dashed var(--line);padding-top:8px}
 
   .load-btn{background:var(--lisan);color:#fff;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-family:"Amiri",serif;font-size:15px;margin-top:8px}
@@ -332,9 +334,39 @@ function searchLisan(nq) {
 /* ============================================================
  * Rendering
  * ============================================================ */
+/* Quran ayah styling: {...} → ﴿﴾ green; [sura/N] → gold; also detect a verse
+ * preceding a [sura/N] reference even without braces. */
+const AYAH_CIT = /\[[^\[\]]*?\/\s*[0-9٠-٩]+[^\[\]]*?\]/g;
+const VERSE_INTRO = /(?:^|[\s،؛(])(?:[وفبكل]?قوله|[وف]?قال|كقوله|نحو|وعلى ذلك|وعلى هذا|على ذلك|على هذا|ومنه)\s/g;
+function styleQuran(s) {
+  s = s.replace(/\{([^{}]*)\}/g, '<span class="ayah">﴿$1﴾</span>');
+  let out = "", last = 0, m;
+  AYAH_CIT.lastIndex = 0;
+  while ((m = AYAH_CIT.exec(s))) {
+    const seg = s.slice(last, m.index);
+    let b = -1;
+    for (const ch of [">", "}", ":", "：", ".", "؟", "!", "]", "["]) b = Math.max(b, seg.lastIndexOf(ch));
+    let start = b + 1, im; VERSE_INTRO.lastIndex = start;
+    while ((im = VERSE_INTRO.exec(seg))) start = VERSE_INTRO.lastIndex;
+    const head = seg.slice(0, start);
+    const rest = seg.slice(start);
+    const lead = rest.match(/^[\s،؛]*/)[0];
+    const core = rest.slice(lead.length).replace(/\s+$/, "");
+    const trail = rest.slice(lead.length + core.length);
+    if (core.length >= 3 && core.length <= 160 && /[ء-ي]/.test(core) && core.indexOf("<") === -1) {
+      out += head + lead + '<span class="ayah">﴿' + core + '﴾</span>' + trail + m[0];
+    } else {
+      out += seg + m[0];
+    }
+    last = AYAH_CIT.lastIndex;
+  }
+  s = out + s.slice(last);
+  return s.replace(/\[([^\[\]]*[0-9٠-٩][^\[\]]*)\]/g, '<span class="ayah-ref">[$1]</span>');
+}
+
 function cardBody(text) {
   return text.split(/\n\n+/).map(p =>
-    '<p class="para">' + esc(p) + '</p>'
+    '<p class="para">' + styleQuran(esc(p)) + '</p>'
   ).join("");
 }
 
@@ -365,7 +397,7 @@ async function expandLisanCard(card) {
     const slice = pages.slice(startIdx, startIdx + 3);
     bodyEl.innerHTML = slice.map(p =>
       '<div class="lisan-page-marker">— صفحة ' + arNum(p.page) + ' —</div>' +
-      '<p class="para">' + esc(p.text || "") + '</p>'
+      '<p class="para">' + styleQuran(esc(p.text || "")) + '</p>'
     ).join("");
   } catch (err) {
     bodyEl.innerHTML = '<span class="loading">تعذّر التحميل</span>';
@@ -493,7 +525,7 @@ async function appendLisanPages() {
     '<article class="card" data-src="lisan"><div class="card-head">' +
     '<h2 class="root">صفحة ' + arNum(p.page) + '</h2>' +
     '<span class="ref">لسان العرب</span></div>' +
-    '<div class="body"><p class="para">' + esc(p.text || "") + '</p></div></article>'
+    '<div class="body"><p class="para">' + styleQuran(esc(p.text || "")) + '</p></div></article>'
   ).join("");
   resEl.insertAdjacentHTML("beforeend", html);
   lisanReadCursor = sliceEnd;
