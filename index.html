@@ -23,7 +23,7 @@
     --paper:#f4ecd8;--paper-deep:#ece0c4;--ink:#2b2118;--ink-soft:#5c4a36;
     --accent:#7c2d12;--accent-bright:#a8431a;--gold:#9a7b2e;--line:#d8c9a6;
     --reader-scale:1;
-    --lisan:#7c2d12;--maqayis:#1d4e2c;--mufradat:#6b3e94;
+    --lisan:#7c2d12;--maqayis:#1d4e2c;--mufradat:#6b3e94;--bushro:#0e6b6b;
   }
   html{font-size:clamp(15px,2.6vw,18px)}
   body{
@@ -60,6 +60,8 @@
   .merged-card .section[data-src="maqayis"] .sec-label{background:var(--maqayis)}
   .merged-card .section[data-src="mufradat"]{border-right:4px solid var(--mufradat)}
   .merged-card .section[data-src="mufradat"] .sec-label{background:var(--mufradat)}
+  .merged-card .section[data-src="bushro"]{border-right:4px solid var(--bushro)}
+  .merged-card .section[data-src="bushro"] .sec-label{background:var(--bushro)}
   .merged-card .sec-body{font-size:calc(clamp(15px,4vw,18px)*var(--reader-scale));line-height:2}
 
   .searchbar{position:relative;margin-bottom:10px}
@@ -75,6 +77,7 @@
   .filter[data-src="lisan"].on{background:var(--lisan);border-color:var(--lisan)}
   .filter[data-src="maqayis"].on{background:var(--maqayis);border-color:var(--maqayis)}
   .filter[data-src="mufradat"].on{background:var(--mufradat);border-color:var(--mufradat)}
+  .filter[data-src="bushro"].on{background:var(--bushro);border-color:var(--bushro)}
 
   .totop{position:fixed;bottom:16px;left:16px;z-index:45;width:46px;height:46px;border-radius:50%;background:var(--accent);color:#f7efdd;border:none;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 3px 12px rgba(43,33,24,.30);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;pointer-events:none;transform:translateZ(0);will-change:transform;transition:opacity .2s ease,visibility .2s ease}
   .totop:active{transform:translateZ(0) scale(.92)}
@@ -86,6 +89,7 @@
   .group-head[data-src="lisan"]{background:var(--lisan)}
   .group-head[data-src="maqayis"]{background:var(--maqayis)}
   .group-head[data-src="mufradat"]{background:var(--mufradat)}
+  .group-head[data-src="bushro"]{background:var(--bushro)}
   .group-head .count-pill{background:rgba(255,255,255,.25);padding:2px 10px;border-radius:12px;font-size:13px;font-weight:400}
 
   .card{background:rgba(251,245,230,.78);border:1px solid var(--line);border-radius:16px;padding:clamp(16px,4vw,24px);margin-bottom:12px;box-shadow:0 2px 12px rgba(43,33,24,.05);animation:rise .35s ease both}
@@ -184,6 +188,7 @@ const BOOKS = {
   lisan:    { name: "لسان العرب",    color: "#7c2d12", dataUrl: null /* lazy */ },
   maqayis:  { name: "مقاييس اللغة",  color: "#1d4e2c", dataUrl: "data/maqayis.json" },
   mufradat: { name: "المفردات",      color: "#6b3e94", dataUrl: "data/mufradat.json" },
+  bushro:   { name: "بشرى",          color: "#0e6b6b", dataUrl: "data/bushro.json", optional: true },
 };
 const LISAN_ROOTS_URL = "data/lisan/roots.json";
 const LISAN_CHUNKS_URL = "data/lisan/chunks.json";
@@ -221,11 +226,12 @@ const $ = s => document.querySelector(s);
 const qEl = $("#q"), clearEl = $("#clear"), countEl = $("#count"), resEl = $("#results");
 const filtersEl = $("#filters");
 
-let DATA = { maqayis: [], mufradat: [] };
+let DATA = { maqayis: [], mufradat: [], bushro: [] };
 let LISAN_ROOTS = [];        // [[root_norm, chunkIdx, entryIdx], ...] reading order
 let LISAN_CHUNKS = [];       // [{idx, file, start, count, size_kb}, ...]
 const LISAN_CHUNK_CACHE = {}; // chunkIdx → entries array [{root, text}, ...]
 let ROOTSET = new Set();     // all known normalized roots (xref target check)
+let HAS_BUSHRO = false;      // set after data/bushro.json loads successfully
 let activeSources = new Set(["lisan", "maqayis", "mufradat"]);
 let groupMode = localStorage.getItem("group_mode") || "book"; // "book" | "root"
 let scale = parseFloat(localStorage.getItem("reader_scale") || "1") || 1;
@@ -239,21 +245,40 @@ async function loadJSON(url) {
   return r.json();
 }
 
+/* Bushro is loaded only when data/bushro.json is present (gitignored on the
+ * public deploy). When found, inject the filter chip so the rest of the UI
+ * treats it like any other book. */
+function addBushroUI() {
+  if (document.querySelector('.filter[data-src="bushro"]')) return;
+  const chip = document.createElement("button");
+  chip.className = "filter on";
+  chip.dataset.src = "bushro";
+  chip.textContent = "بشرى";
+  filtersEl.appendChild(chip);
+}
+
 async function loadInitial() {
   countEl.textContent = "جارٍ تحميل البيانات…";
   try {
-    const [maqayis, mufradat, lisanRoots, lisanChunks] = await Promise.all([
+    const [maqayis, mufradat, lisanRoots, lisanChunks, bushro] = await Promise.all([
       loadJSON(BOOKS.maqayis.dataUrl),
       loadJSON(BOOKS.mufradat.dataUrl),
       loadJSON(LISAN_ROOTS_URL).catch(() => []),
       loadJSON(LISAN_CHUNKS_URL).catch(() => []),
+      loadJSON(BOOKS.bushro.dataUrl).catch(() => null), // optional / local-only
     ]);
     DATA.maqayis = maqayis;
     DATA.mufradat = mufradat;
     LISAN_ROOTS = lisanRoots;
     LISAN_CHUNKS = lisanChunks;
+    if (bushro && bushro.length) {
+      DATA.bushro = bushro;
+      HAS_BUSHRO = true;
+      activeSources.add("bushro");
+      addBushroUI();
+    }
 
-    for (const src of ["maqayis", "mufradat"]) {
+    for (const src of ["maqayis", "mufradat", "bushro"]) {
       DATA[src].forEach((e, i) => {
         e._n = normalize(e.root);
         e._t = normalize(e.text);
@@ -461,30 +486,24 @@ function doSearch(q) {
     res = res.slice(0, 40);
     if (res.length) { groups.lisan = res; total += res.length; }
   }
-  if (activeSources.has("maqayis")) {
+  for (const src of ["maqayis", "mufradat", "bushro"]) {
+    if (!activeSources.has(src)) continue;
+    if (src === "bushro" && !HAS_BUSHRO) continue;
     let res = [];
-    for (const tq of titleQs) res = mergeUnique(res, searchBookTitle("maqayis", tq));
+    for (const tq of titleQs) res = mergeUnique(res, searchBookTitle(src, tq));
     res = res.slice(0, 40);
-    if (res.length) { groups.maqayis = res; total += res.length; }
-  }
-  if (activeSources.has("mufradat")) {
-    let res = [];
-    for (const tq of titleQs) res = mergeUnique(res, searchBookTitle("mufradat", tq));
-    res = res.slice(0, 40);
-    if (res.length) { groups.mufradat = res; total += res.length; }
+    if (res.length) { groups[src] = res; total += res.length; }
   }
 
-  // pass 2: title returned nothing → expand to body text (maqayis + mufradat)
+  // pass 2: title returned nothing → expand to body text (dict books only)
   let expanded = false;
   if (!total) {
     expanded = true;
-    if (activeSources.has("maqayis")) {
-      const res = searchBookBody("maqayis", nq);
-      if (res.length) { groups.maqayis = res; total += res.length; }
-    }
-    if (activeSources.has("mufradat")) {
-      const res = searchBookBody("mufradat", nq);
-      if (res.length) { groups.mufradat = res; total += res.length; }
+    for (const src of ["maqayis", "mufradat", "bushro"]) {
+      if (!activeSources.has(src)) continue;
+      if (src === "bushro" && !HAS_BUSHRO) continue;
+      const res = searchBookBody(src, nq);
+      if (res.length) { groups[src] = res; total += res.length; }
     }
   }
 
@@ -535,7 +554,7 @@ async function hydrateLisanCards() {
 
 function renderByBook(groups, nq) {
   let html = "";
-  for (const src of ["maqayis", "mufradat", "lisan"]) {
+  for (const src of ["maqayis", "mufradat", "bushro", "lisan"]) {
     if (!groups[src]) continue;
     const items = groups[src];
     html += '<div class="group-head" data-src="' + src + '">' + BOOKS[src].name +
@@ -564,7 +583,7 @@ function renderByRoot(groups, nq) {
     if (!slot[src]) slot[src] = item; // first match per book wins
   }
   // order books so that the "richer" entries come first
-  for (const src of ["maqayis", "mufradat", "lisan"]) {
+  for (const src of ["maqayis", "mufradat", "bushro", "lisan"]) {
     const items = groups[src] || [];
     for (const it of items) {
       if (src === "lisan") bump(it[0], it[0], src, it);
@@ -575,7 +594,7 @@ function renderByRoot(groups, nq) {
   for (const rootNorm of order) {
     const { displayRoot, entries } = byRoot.get(rootNorm);
     html += '<article class="merged-card"><h2 class="root">' + highlight(esc(displayRoot), nq) + '</h2>';
-    for (const src of ["maqayis", "mufradat", "lisan"]) {
+    for (const src of ["maqayis", "mufradat", "bushro", "lisan"]) {
       const item = entries[src];
       if (!item) continue;
       html += '<div class="section" data-src="' + src + '">';
