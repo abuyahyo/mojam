@@ -78,10 +78,10 @@
 
   .card{background:rgba(251,245,230,.78);border:1px solid var(--line);border-radius:16px;padding:clamp(16px,4vw,24px);margin-bottom:12px;box-shadow:0 2px 12px rgba(43,33,24,.05);animation:rise .35s ease both}
   @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-  .card-head{margin-bottom:10px;border-bottom:1px solid var(--line);padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .card-head{margin-bottom:10px;border-bottom:1px dashed var(--line);padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
   .card-head .root{font-family:"Amiri","Scheherazade New",serif;font-weight:700;color:var(--accent);font-size:clamp(24px,6vw,34px)}
   .card-head .ref{font-size:13px;color:var(--ink-soft);font-family:"Amiri",serif}
-  .body{font-size:calc(clamp(16px,4.3vw,19px)*var(--reader-scale));line-height:2.05}
+  .body{font-family:"Amiri","Scheherazade New",serif;font-size:calc(clamp(16px,4.3vw,19px)*var(--reader-scale));line-height:2.05;text-align:center}
   .body .para{margin:0 0 .55em}
   .body .para:last-child{margin-bottom:0}
   .body mark,.card-head mark{background:#f0d878;color:inherit;border-radius:3px;padding:0 1px}
