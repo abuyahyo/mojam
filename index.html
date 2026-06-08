@@ -661,20 +661,32 @@ function startReading(book) {
   }
 }
 
+/* Find the index where the dictionary proper begins (skipping any preface
+ * chapters). Heuristic: first run of 3 consecutive entries that all look
+ * like short single-word roots (≤4 chars). Mufradat has ~96 preface
+ * entries before the روots; Maqayis has none. */
+const DICT_START = {};
+function dictStartIndex(src) {
+  if (src in DICT_START) return DICT_START[src];
+  const data = DATA[src];
+  const isRootish = e => e._n.length <= 4 && !e.root.includes(" ");
+  for (let i = 0; i + 2 < data.length; i++) {
+    if (isRootish(data[i]) && isRootish(data[i+1]) && isRootish(data[i+2])) {
+      DICT_START[src] = i;
+      return i;
+    }
+  }
+  DICT_START[src] = 0;
+  return 0;
+}
+
 function firstIndexOfLetter(src, L) {
   const Ln = normalize(L);
-  // Prefer entries that look like real roots: short single-word _n.
-  // Falls back to any startsWith match if no short-root candidate found
-  // (covers Maqayis cleanly; skips Mufradat's preface entries like
-  // "المصادر التي اعتمد عليها الراغب…" which would otherwise hijack ا).
-  let strict = -1, loose = -1;
-  for (let i = 0; i < DATA[src].length; i++) {
-    const e = DATA[src][i];
-    if (!e._n.startsWith(Ln)) continue;
-    if (loose < 0) loose = i;
-    if (e._n.length <= 5 && !e.root.includes(" ")) { strict = i; break; }
+  const start = dictStartIndex(src);
+  for (let i = start; i < DATA[src].length; i++) {
+    if (DATA[src][i]._n.startsWith(Ln)) return i;
   }
-  return strict >= 0 ? strict : loose;
+  return -1;
 }
 
 alphaEl.addEventListener("click", e => {
