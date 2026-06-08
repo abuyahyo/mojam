@@ -22,10 +22,11 @@
     --reader-scale:1;
     --lisan:#7c2d12;--maqayis:#1d4e2c;--mufradat:#6b3e94;--bushro:#0e6b6b;
   }
-  html{font-size:clamp(15px,2.6vw,18px)}
+  html{font-size:clamp(15px,2.6vw,18px);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"SF Arabic","SF Pro Text",system-ui,"Segoe UI",Tahoma,sans-serif;
-    color:var(--ink);direction:rtl;text-align:right;line-height:2.0;min-height:100vh;min-height:100dvh;
+    font-feature-settings:"kern" 1,"liga" 1,"calt" 1;
+    color:var(--ink);direction:rtl;text-align:right;line-height:1.9;min-height:100vh;min-height:100dvh;
     background-color:var(--paper);
     background-image:
       radial-gradient(circle at 18% 12%,rgba(255,255,255,.55),transparent 42%),
@@ -76,13 +77,13 @@
   .card{background:rgba(251,245,230,.78);border:1px solid var(--line);border-radius:16px;padding:clamp(16px,4vw,24px);margin-bottom:12px;box-shadow:0 2px 12px rgba(43,33,24,.05);animation:rise .35s ease both}
   @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
   .card-head{margin-bottom:10px;border-bottom:1px dashed var(--line);padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-  .card-head .root{font-family:-apple-system,system-ui,"SF Arabic","Geeza Pro","SF Pro Text",sans-serif;font-weight:700;color:var(--accent);font-size:clamp(24px,6vw,34px)}
-  .card-head .ref{font-size:13px;color:var(--ink-soft);font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif}
-  .body{font-family:-apple-system,system-ui,"SF Arabic","Geeza Pro","SF Pro Text",sans-serif;font-size:calc(clamp(16px,4.3vw,19px)*var(--reader-scale));line-height:2.05;text-align:center}
-  .body .para{margin:0 0 .55em}
+  .card-head .root{font-family:-apple-system,system-ui,"SF Arabic","Geeza Pro","SF Pro Text",sans-serif;font-weight:700;color:var(--accent);font-size:clamp(26px,6.4vw,36px);letter-spacing:-.01em}
+  .card-head .ref{font-size:13px;color:var(--ink-soft);font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif;font-weight:500}
+  .body{font-family:-apple-system,system-ui,"SF Arabic","Geeza Pro","SF Pro Text",sans-serif;font-size:calc(clamp(16.5px,4.4vw,19.5px)*var(--reader-scale));line-height:1.95;text-align:right;font-weight:400;color:var(--ink)}
+  .body .para{margin:0 0 .7em}
   .body .para:last-child{margin-bottom:0}
   .body mark,.card-head mark{background:#f0d878;color:inherit;border-radius:3px;padding:0 1px}
-  .body .ayah{color:#2c6e49;font-weight:600;font-family:-apple-system,system-ui,"SF Arabic","Geeza Pro","SF Pro Text",sans-serif}
+  .body .ayah{color:#2c6e49;font-weight:600;font-family:-apple-system,system-ui,"SF Arabic","Geeza Pro","SF Pro Text",sans-serif;font-feature-settings:"liga" 1}
   .body .ayah-ref{color:var(--gold);font-size:.82em;font-style:normal}
   .body .hadith{color:var(--accent-bright);font-weight:600}
   .body a.xref{color:var(--accent-bright);cursor:pointer;border-bottom:1px dashed var(--accent-bright);text-decoration:none}
