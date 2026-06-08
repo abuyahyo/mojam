@@ -1,9 +1,8 @@
 _refs/
 *.log
 # Bushro source artifacts (the raw third-party DB / intermediate files) stay
-# local; the converted data/bushro.json is published by owner's choice.
-# The reverse direction (Uzbek → Arabic) is still local pending owner review.
-data/bushro_uz.json
+# local; the converted data/bushro.json and data/bushro_uz.json are
+# published by owner's choice.
 data/bushro/
 data/lisan/markers_progress.json
 debug_roots.py
