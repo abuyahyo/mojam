@@ -101,6 +101,10 @@
 
   .loading{color:var(--ink-soft);font-style:italic;font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif;font-size:14px}
 
+  .loading-screen{text-align:center;color:var(--ink-soft);padding:56px 20px;font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif;font-size:16px}
+  .loading-screen .spin{width:34px;height:34px;margin:0 auto 16px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
   .empty{text-align:center;color:var(--ink-soft);padding:56px 20px;font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif}
   .empty .sym{font-size:54px;color:#cbb88f;display:block;margin-bottom:18px;line-height:1}
   .empty .msg{font-size:19px}
@@ -247,6 +251,8 @@ let ROOTSET = new Set();     // all known normalized roots (xref target check)
 let HAS_BUSHRO = false;      // set after data/bushro.json loads successfully
 let activeSources = new Set(["lisan", "maqayis", "mufradat"]);
 let scale = parseFloat(localStorage.getItem("reader_scale") || "1") || 1;
+let dataReady = false;       // dictionaries finished loading & normalizing
+let pendingQuery = null;     // query typed/restored before data was ready
 
 /* ============================================================
  * Data loading
@@ -276,7 +282,6 @@ function addBushroUI() {
 }
 
 async function loadInitial() {
-  countEl.textContent = "جارٍ تحميل البيانات…";
   try {
     const [maqayis, mufradat, lisanRoots, lisanChunks, bushro, bushroUz] = await Promise.all([
       loadJSON(BOOKS.maqayis.dataUrl),
@@ -511,9 +516,25 @@ async function expandLisanInto(targetEl, chunkIdx, entryIdx, root) {
   }
 }
 
+/* Centered spinner shown while the dictionaries are still loading and the
+ * user already has a real query waiting to run. */
+function showLoading() {
+  countEl.textContent = "";
+  resEl.innerHTML = '<div class="loading-screen"><div class="spin"></div><div>جارٍ تحميل المعاجم…</div></div>';
+}
+
 function doSearch(q) {
   clearEl.classList.toggle("show", q.length > 0);
   const nq = normalize(q);
+  // Data not loaded yet: remember the query and re-run it once loadInitial
+  // resolves. Only show the spinner for a real query so a plain refresh keeps
+  // a clean, empty screen instead of flashing a loading message.
+  if (!dataReady) {
+    pendingQuery = q;
+    if (nq.length >= 2) showLoading();
+    else { resEl.innerHTML = ""; countEl.textContent = ""; }
+    return;
+  }
   if (!nq) {
     resEl.innerHTML = "";
     countEl.textContent = "";
@@ -799,15 +820,20 @@ prewarmClose.addEventListener("click", () => {
 /* ============================================================
  * Boot
  * ============================================================ */
+// Restore any query from the URL hash right away so the search box isn't
+// empty during the load. doSearch() queues it (showing a spinner only for a
+// real query) until the dictionaries finish loading.
+const bootMatch = location.hash.match(/q=([^&]*)/);
+if (bootMatch) {
+  qEl.value = decodeURIComponent(bootMatch[1]);
+  doSearch(qEl.value);
+}
+
 loadInitial().then(() => {
-  const qm = location.hash.match(/q=([^&]*)/);
-  if (qm) {
-    const q = decodeURIComponent(qm[1]);
-    qEl.value = q;
-    doSearch(q);
-  }
+  dataReady = true;
+  if (pendingQuery !== null) { const pq = pendingQuery; pendingQuery = null; doSearch(pq); }
   maybeShowPrewarm();
-});
+}).catch(() => { /* error already rendered by loadInitial */ });
 
 /* ============================================================
  * Service worker
