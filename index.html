@@ -206,11 +206,11 @@
   <div class="alpha" id="alpha"></div>
 
   <div class="prewarm-bar" id="prewarmBar" hidden>
-    <div style="flex:1">
+    <div style="flex:1;min-width:0">
       <div class="pw-msg" id="prewarmMsg"></div>
       <div class="pw-bar"><div class="pw-fill" id="prewarmFill"></div></div>
     </div>
-    <button class="pw-action" id="prewarmAction">حفظ ٤٧ م.ب</button>
+    <button class="pw-action" id="prewarmAction">حفظ</button>
     <button class="pw-x" id="prewarmClose" aria-label="إغلاق">✕</button>
   </div>
 
@@ -843,6 +843,79 @@ $("#decBtn").addEventListener("click", () => { scale = Math.max(scale - 0.1, 0.8
 applyScale();
 
 /* ============================================================
+ * Offline pre-warm — download all Lisan chunks so the app works fully
+ * offline once user opts in. SW caches every successful fetch.
+ * ============================================================ */
+const prewarmBar = $("#prewarmBar"),
+      prewarmMsg = $("#prewarmMsg"),
+      prewarmFill = $("#prewarmFill"),
+      prewarmAction = $("#prewarmAction"),
+      prewarmClose = $("#prewarmClose");
+
+function totalLisanMB() {
+  const totalKB = LISAN_CHUNKS.reduce((a, c) => a + (c.size_kb || 0), 0);
+  return Math.round(totalKB / 1024);
+}
+
+function setPrewarmIdle() {
+  prewarmMsg.textContent = "احفظ لسان العرب (" + arNum(totalLisanMB()) + " م.ب) للاستخدام بلا اتصال.";
+  prewarmFill.style.width = "0%";
+  prewarmAction.disabled = false;
+  prewarmAction.textContent = "حفظ";
+}
+
+function setPrewarmProgress(done, total) {
+  prewarmMsg.textContent = "جارٍ التنزيل: " + arNum(done) + " / " + arNum(total);
+  prewarmFill.style.width = Math.round(100 * done / total) + "%";
+  prewarmAction.disabled = true;
+  prewarmAction.textContent = "…";
+}
+
+function maybeShowPrewarm() {
+  if (localStorage.getItem("prewarm_done") === "1") return;
+  if (localStorage.getItem("prewarm_dismissed") === "1") return;
+  if (!LISAN_CHUNKS.length) return;
+  setPrewarmIdle();
+  prewarmBar.hidden = false;
+}
+
+async function runPrewarm() {
+  const total = LISAN_CHUNKS.length;
+  let done = 0;
+  setPrewarmProgress(0, total);
+  // Sequential with small concurrency to avoid hammering the server
+  const CONCURRENCY = 4;
+  let next = 0;
+  const workers = [];
+  for (let w = 0; w < CONCURRENCY; w++) {
+    workers.push((async () => {
+      while (next < total) {
+        const i = next++;
+        const ch = LISAN_CHUNKS[i];
+        try {
+          await fetch("data/lisan/" + ch.file);
+        } catch (e) { /* SW will retry next time */ }
+        done++;
+        setPrewarmProgress(done, total);
+      }
+    })());
+  }
+  await Promise.all(workers);
+  localStorage.setItem("prewarm_done", "1");
+  prewarmMsg.textContent = "✓ محفوظ بلا اتصال.";
+  prewarmFill.style.width = "100%";
+  prewarmAction.disabled = true;
+  prewarmAction.textContent = "✓";
+  setTimeout(() => { prewarmBar.hidden = true; }, 2000);
+}
+
+prewarmAction.addEventListener("click", () => { runPrewarm().catch(() => {}); });
+prewarmClose.addEventListener("click", () => {
+  localStorage.setItem("prewarm_dismissed", "1");
+  prewarmBar.hidden = true;
+});
+
+/* ============================================================
  * Boot
  * ============================================================ */
 loadInitial().then(() => {
@@ -852,6 +925,7 @@ loadInitial().then(() => {
     qEl.value = q;
     doSearch(q);
   }
+  maybeShowPrewarm();
 });
 
 /* ============================================================
