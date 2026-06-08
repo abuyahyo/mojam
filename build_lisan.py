@@ -1,5 +1,13 @@
 """Build Lisan al-Arab data files for mojam SPA.
 
+NOTE (format change): the SPA no longer consumes the PAGE-based output below.
+Lisan is now stored as one entry per root (like maqayis / mufradat), produced
+by rebuild_lisan_entries.py. If you rebuild from the original source with this
+script, run rebuild_lisan_entries.py afterwards to convert the page chunks into
+the entry-based format the app expects (chunks of [{root, text}, ...],
+chunks.json with {idx,file,start,count,size_kb}, roots.json of
+[[root_norm, chunkIdx, entryIdx], ...] in reading order).
+
 Produces in C:\\mojam\\data\\lisan\\:
   - chunks/chunk_NNN.json  : page texts split into ~160-page chunks (~950KB each)
   - chunks.json            : chunk metadata [{idx, first_page, last_page, size_kb}]
