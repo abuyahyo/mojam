@@ -79,6 +79,11 @@
   .card-head{margin-bottom:10px;border-bottom:1px dashed var(--line);padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
   .card-head .root{font-family:-apple-system,system-ui,"SF Arabic","Geeza Pro","SF Pro Text",sans-serif;font-weight:700;color:var(--accent);font-size:clamp(26px,6.4vw,36px);letter-spacing:-.01em}
   .card-head .ref{font-size:13px;color:var(--ink-soft);font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif;font-weight:500}
+  .card-head .head-right{display:flex;align-items:center;gap:8px}
+  .copy-btn{background:transparent;border:1px solid var(--line);color:var(--ink-soft);border-radius:8px;width:32px;height:32px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+  .copy-btn:hover{background:var(--paper-deep);color:var(--accent)}
+  .copy-btn:active{transform:scale(.92)}
+  .copy-btn.ok{background:#2c6e49;color:#fff;border-color:#2c6e49}
   .body{font-family:-apple-system,system-ui,"SF Arabic","Geeza Pro","SF Pro Text",sans-serif;font-size:calc(clamp(16.5px,4.4vw,19.5px)*var(--reader-scale));line-height:1.95;text-align:right;font-weight:400;color:var(--ink)}
   .body .para{margin:0 0 .7em}
   .body .para:last-child{margin-bottom:0}
@@ -190,8 +195,26 @@ const normalize = s => (s || "")
   .replace(/\s+/g, " ").trim();
 
 const LATIN_RE = /[a-z]/i;
+const CYRILLIC_RE = /[а-яёўқғҳ]/i;
 const ARABIC_RE = /[ء-ي]/;
-const isUzbekQuery = q => LATIN_RE.test(q) && !ARABIC_RE.test(q);
+const isUzbekQuery = q => (LATIN_RE.test(q) || CYRILLIC_RE.test(q)) && !ARABIC_RE.test(q);
+
+/* Uzbek Cyrillic → Latin transliteration for Bushro reverse search.
+ * Bushro's uzbek_arabic table only stores Latin entries, so a Cyrillic
+ * query like "абадий" is converted to "abadiy" before lookup. */
+const CYR_LAT = {
+  "а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"yo","ж":"j",
+  "з":"z","и":"i","й":"y","к":"k","л":"l","м":"m","н":"n","о":"o",
+  "п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f","х":"x","ц":"s",
+  "ч":"ch","ш":"sh","ъ":"'","ь":"","э":"e","ю":"yu","я":"ya",
+  "ў":"o'","қ":"q","ғ":"g'","ҳ":"h",
+  "А":"A","Б":"B","В":"V","Г":"G","Д":"D","Е":"E","Ё":"Yo","Ж":"J",
+  "З":"Z","И":"I","Й":"Y","К":"K","Л":"L","М":"M","Н":"N","О":"O",
+  "П":"P","Р":"R","С":"S","Т":"T","У":"U","Ф":"F","Х":"X","Ц":"S",
+  "Ч":"Ch","Ш":"Sh","Ъ":"'","Ь":"","Э":"E","Ю":"Yu","Я":"Ya",
+  "Ў":"O'","Қ":"Q","Ғ":"G'","Ҳ":"H",
+};
+const cyrToLat = s => s.replace(/[а-яёўқғҳА-ЯЁЎҚҒҲ]/g, c => CYR_LAT[c] || c);
 
 const stripTashkeel = s => (s || "").replace(TASHKEEL, "");
 const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -450,10 +473,12 @@ function cardBody(text, own) {
   }).join("");
 }
 
+const copyBtn = title => '<button class="copy-btn" data-action="copy" title="' + title + '" aria-label="' + title + '">⧉</button>';
+
 function cardHTML_dict(e, nq) {
   return '<article class="card" data-src="' + e._src + '" data-idx="' + e._idx + '">' +
     '<div class="card-head"><h2 class="root">' + highlight(esc(e.root), nq) + '</h2>' +
-    '<span class="ref">' + BOOKS[e._src].name + '</span></div>' +
+    '<div class="head-right"><span class="ref">' + BOOKS[e._src].name + '</span>' + copyBtn("نسخ") + '</div></div>' +
     '<div class="body">' + highlight(cardBody(e.text, e._n), nq) + '</div></article>';
 }
 
@@ -461,7 +486,7 @@ function cardHTML_lisanResult(rootEntry, nq) {
   const [root, chunkIdx, entryIdx] = rootEntry;
   return '<article class="card lisan-result" data-src="lisan" data-root="' + esc(root) + '" data-chunk="' + chunkIdx + '" data-entry="' + entryIdx + '">' +
     '<div class="card-head"><h2 class="root">' + highlight(esc(root), nq) + '</h2>' +
-    '<span class="ref">لسان العرب</span></div>' +
+    '<div class="head-right"><span class="ref">لسان العرب</span>' + copyBtn("نسخ") + '</div></div>' +
     '<div class="body"><span class="loading">جارٍ التحميل…</span></div></article>';
 }
 
@@ -495,9 +520,11 @@ function doSearch(q) {
     return;
   }
 
-  // Latin-only query → Uzbek→Arabic side of Bushro (other books are Arabic only)
+  // Latin or Cyrillic query → Uzbek→Arabic side of Bushro. Cyrillic is
+  // transliterated to Latin first because the data is Latin only.
   if (isUzbekQuery(nq) && DATA.bushro_uz.length) {
-    const res = searchBookTitle("bushro_uz", nq).slice(0, 60);
+    const uzNq = CYRILLIC_RE.test(nq) ? normalize(cyrToLat(nq)) : nq;
+    const res = searchBookTitle("bushro_uz", uzNq).slice(0, 60);
     if (!res.length) {
       resEl.innerHTML = '<div class="empty"><span class="sym">∅</span><div class="msg">لا توجد نتائج لـ «' + esc(q) + '»</div></div>';
       countEl.textContent = "";
@@ -649,6 +676,31 @@ resEl.addEventListener("click", e => {
     setHash(xr.dataset.q);
     doSearch(xr.dataset.q);
     window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  const cb = e.target.closest("button.copy-btn");
+  if (cb) {
+    e.preventDefault();
+    const card = cb.closest(".card");
+    if (!card) return;
+    const root = (card.querySelector(".root") || {}).innerText || "";
+    const body = (card.querySelector(".body") || {}).innerText || "";
+    const text = (root + "\n\n" + body).trim();
+    const done = () => {
+      cb.classList.add("ok");
+      cb.textContent = "✓";
+      setTimeout(() => { cb.classList.remove("ok"); cb.textContent = "⧉"; }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, () => {});
+    } else {
+      // Fallback for older mobile browsers
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); done(); } catch (err) {}
+      document.body.removeChild(ta);
+    }
   }
 });
 
