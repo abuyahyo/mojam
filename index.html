@@ -295,22 +295,26 @@ function lisanPageText(pages, pageNum) {
 /* ============================================================
  * Search
  * ============================================================ */
-function searchBook(src, nq) {
-  const exact = [], starts = [], incl = [], intext = [];
+function searchBookTitle(src, nq) {
+  const exact = [], starts = [], incl = [];
   for (const e of DATA[src]) {
     if (e._n === nq) exact.push(e);
     else if (e._n.startsWith(nq)) starts.push(e);
     else if (e._n.includes(nq)) incl.push(e);
   }
-  const seen = new Set([...exact, ...starts, ...incl]);
+  return exact.concat(starts, incl);
+}
+
+function searchBookBody(src, nq) {
+  const intext = [];
   for (const e of DATA[src]) {
-    if (seen.has(e)) continue;
+    if (e._n.includes(nq)) continue;  // already in title results
     if (e._t.includes(nq)) {
       intext.push(e);
-      if (exact.length + starts.length + incl.length + intext.length >= 40) break;
+      if (intext.length >= 40) break;
     }
   }
-  return exact.concat(starts, incl, intext);
+  return intext;
 }
 
 function searchLisan(nq) {
@@ -377,6 +381,7 @@ function doSearch(q) {
     return;
   }
 
+  // pass 1: title-only across all active sources
   const groups = {};
   let total = 0;
   if (activeSources.has("lisan")) {
@@ -384,12 +389,26 @@ function doSearch(q) {
     if (res.length) { groups.lisan = res; total += res.length; }
   }
   if (activeSources.has("maqayis")) {
-    const res = searchBook("maqayis", nq).slice(0, 40);
+    const res = searchBookTitle("maqayis", nq).slice(0, 40);
     if (res.length) { groups.maqayis = res; total += res.length; }
   }
   if (activeSources.has("mufradat")) {
-    const res = searchBook("mufradat", nq).slice(0, 40);
+    const res = searchBookTitle("mufradat", nq).slice(0, 40);
     if (res.length) { groups.mufradat = res; total += res.length; }
+  }
+
+  // pass 2: title returned nothing → expand to body text (maqayis + mufradat)
+  let expanded = false;
+  if (!total) {
+    expanded = true;
+    if (activeSources.has("maqayis")) {
+      const res = searchBookBody("maqayis", nq);
+      if (res.length) { groups.maqayis = res; total += res.length; }
+    }
+    if (activeSources.has("mufradat")) {
+      const res = searchBookBody("mufradat", nq);
+      if (res.length) { groups.mufradat = res; total += res.length; }
+    }
   }
 
   if (!total) {
@@ -397,10 +416,9 @@ function doSearch(q) {
     countEl.textContent = "";
     return;
   }
-  countEl.textContent = arNum(total) + " نتيجة";
+  countEl.textContent = arNum(total) + " نتيجة" + (expanded ? " (من داخل الشروح)" : "");
 
   let html = "";
-  // ordered: maqayis, mufradat first (richer entries), lisan last (many hits)
   for (const src of ["maqayis", "mufradat", "lisan"]) {
     if (!groups[src]) continue;
     const items = groups[src];
