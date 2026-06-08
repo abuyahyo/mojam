@@ -308,14 +308,25 @@ async function loadLisanChunk(chunkIdx) {
 /* ============================================================
  * Search
  * ============================================================ */
+/* A prefix-root (lemma) match: the user typed an inflected word (بشرى, علماء,
+ * رحمن) whose dictionary root (بشر, علم, رحم) is a prefix of the query with at
+ * most 2 trailing letters dropped. Capped at 2 to avoid coincidental roots
+ * (مؤمنون→موم "wax", الكتاب→الك "send"). root is the normalized headword. */
+function isLemmaPrefix(root, nq) {
+  const drop = nq.length - root.length;
+  return root.length >= 3 && drop >= 1 && drop <= 2 && nq.startsWith(root);
+}
+
 function searchBookTitle(src, nq) {
-  const exact = [], starts = [], incl = [];
+  const exact = [], starts = [], incl = [], pref = [];
   for (const e of DATA[src]) {
     if (e._n === nq) exact.push(e);
     else if (e._n.startsWith(nq)) starts.push(e);
     else if (e._n.includes(nq)) incl.push(e);
+    else if (isLemmaPrefix(e._n, nq)) pref.push(e);
   }
-  return exact.concat(starts, incl);
+  pref.sort((a, b) => b._n.length - a._n.length); // longest (most specific) root first
+  return exact.concat(starts, incl, pref);
 }
 
 function searchBookBody(src, nq) {
@@ -332,14 +343,16 @@ function searchBookBody(src, nq) {
 
 function searchLisan(nq) {
   // Match in roots.json index. Each entry: [root_norm, chunkIdx, entryIdx]
-  const exact = [], starts = [], incl = [];
+  const exact = [], starts = [], incl = [], pref = [];
   for (const r of LISAN_ROOTS) {
-    if (r[0] === nq) exact.push(r);
-    else if (r[0].startsWith(nq)) starts.push(r);
-    else if (r[0].includes(nq)) incl.push(r);
-    if (exact.length + starts.length + incl.length >= 40) break;
+    const root = r[0];
+    if (root === nq) exact.push(r);
+    else if (root.startsWith(nq)) starts.push(r);
+    else if (root.includes(nq)) incl.push(r);
+    else if (isLemmaPrefix(root, nq)) pref.push(r);
   }
-  return exact.concat(starts, incl);
+  pref.sort((a, b) => b[0].length - a[0].length); // longest root first
+  return exact.concat(starts, incl, pref).slice(0, 40);
 }
 
 /* ============================================================
