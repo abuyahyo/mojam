@@ -42,26 +42,11 @@
   header.site .sub{font-family:"Amiri",serif;color:var(--ink-soft);font-size:clamp(13px,3.4vw,17px);margin-top:8px;line-height:1.7}
   .divider{height:2px;width:min(420px,80%);margin:clamp(14px,3vw,22px) auto 0;background:linear-gradient(90deg,transparent,var(--line),transparent)}
 
-  .tabs{display:flex;justify-content:center;gap:8px;margin:clamp(12px,3vw,20px) 0 0}
-  .tab{font-family:"Amiri",serif;font-size:clamp(15px,4vw,18px);background:transparent;border:1px solid var(--line);color:var(--ink-soft);border-radius:22px;padding:9px 22px;cursor:pointer;transition:background .15s,color .15s,transform .1s}
-  .tab:active{transform:scale(.96)}
-  .tab.on{background:var(--accent);color:#f7efdd;border-color:var(--accent)}
-  body[data-mode="read"] .searchbar{display:none}
-  body[data-mode="read"] .filters{display:none}
-  body[data-mode="search"] .read-picker{display:none}
-  body[data-mode="search"] .alpha{display:none}
-  body[data-mode="read"] .alpha{display:flex}
-  body[data-mode="read"]:not([data-reading]) .alpha,
-  body[data-mode="read"]:not([data-reading]) .alpha-label{display:none}
-  .alpha-label{display:none;text-align:center;color:var(--ink-soft);font-family:"Amiri",serif;font-size:13px;margin:6px 0 0}
-  body[data-mode="read"][data-reading] .alpha-label{display:block}
-
   .toolbar{display:flex;justify-content:center;gap:10px;margin:clamp(16px,4vw,26px) 0 14px;flex-wrap:wrap}
   .tool{font-family:"Amiri",serif;font-size:clamp(15px,3.6vw,18px);background:var(--paper-deep);border:1px solid var(--line);color:var(--ink);border-radius:24px;padding:8px 18px;cursor:pointer;user-select:none;transition:transform .12s,background .15s,color .15s;display:inline-flex;align-items:center;gap:6px}
   .tool:active{transform:scale(.95)}
   .tool.on{background:var(--accent);color:#f7efdd;border-color:var(--accent)}
   .tool.icon{padding:8px 14px;min-width:48px;justify-content:center;font-weight:700}
-  body[data-mode="read"] .group-toggle{display:none}
 
   /* Comparison card (group-by-root mode) */
   .merged-card{background:rgba(251,245,230,.78);border:1px solid var(--line);border-radius:16px;padding:clamp(14px,3.5vw,20px);margin-bottom:14px;box-shadow:0 2px 12px rgba(43,33,24,.05);animation:rise .35s ease both}
@@ -90,20 +75,6 @@
   .filter[data-src="lisan"].on{background:var(--lisan);border-color:var(--lisan)}
   .filter[data-src="maqayis"].on{background:var(--maqayis);border-color:var(--maqayis)}
   .filter[data-src="mufradat"].on{background:var(--mufradat);border-color:var(--mufradat)}
-
-  .read-picker{display:flex;flex-direction:column;gap:14px;margin:20px 0 12px}
-  .book-btn{font-family:"Amiri",serif;font-size:clamp(18px,5vw,22px);padding:18px 22px;border-radius:14px;border:1.5px solid var(--line);background:rgba(251,245,230,.9);cursor:pointer;text-align:right;display:flex;justify-content:space-between;align-items:center;transition:.2s}
-  .book-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(43,33,24,.08)}
-  .book-btn[data-book="lisan"]{border-right:6px solid var(--lisan)}
-  .book-btn[data-book="maqayis"]{border-right:6px solid var(--maqayis)}
-  .book-btn[data-book="mufradat"]{border-right:6px solid var(--mufradat)}
-  .book-btn .title{font-weight:700;color:var(--accent)}
-  .book-btn .meta{font-size:14px;color:var(--ink-soft);font-weight:400}
-
-  .alpha{display:none;flex-wrap:wrap;justify-content:center;gap:6px;margin:2px 0 14px}
-  .alpha .al{font-family:"Amiri",serif;font-size:18px;width:38px;height:38px;background:#fbf5e6;border:1px solid var(--line);border-radius:9px;color:var(--accent);cursor:pointer;transition:transform .12s,background .15s,color .15s}
-  .alpha .al:active{transform:scale(.9)}
-  .alpha .al.on{background:var(--accent);color:#f7efdd;border-color:var(--accent)}
 
   .totop{position:fixed;bottom:16px;left:16px;z-index:45;width:46px;height:46px;border-radius:50%;background:var(--accent);color:#f7efdd;border:none;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 3px 12px rgba(43,33,24,.30);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;pointer-events:none;transform:translateZ(0);will-change:transform;transition:opacity .2s ease,visibility .2s ease}
   .totop:active{transform:translateZ(0) scale(.92)}
@@ -157,18 +128,13 @@
   .prewarm-bar .pw-x{flex:none;background:transparent;border:none;color:var(--ink-soft);font-size:18px;cursor:pointer;width:28px;height:28px;line-height:1}
 </style>
 </head>
-<body data-mode="search">
+<body>
 <div class="wrap">
   <header class="site">
     <h1>المعاجم الثلاثة</h1>
     <div class="sub">لسان العرب لابن منظور · مقاييس اللغة لابن فارس · المفردات للراغب الأصفهاني</div>
     <div class="divider"></div>
   </header>
-
-  <div class="tabs">
-    <button class="tab on" id="tabSearch">🔍 بحث</button>
-    <button class="tab" id="tabRead">📖 قراءة</button>
-  </div>
 
   <div class="toolbar">
     <button class="tool icon" id="incBtn" title="تكبير الخطّ">ا+</button>
@@ -186,24 +152,6 @@
     <button class="filter on" data-src="maqayis">مقاييس اللغة</button>
     <button class="filter on" data-src="mufradat">المفردات</button>
   </div>
-
-  <div class="read-picker" id="readPicker">
-    <button class="book-btn" data-book="lisan">
-      <span class="title">📜 لسان العرب</span>
-      <span class="meta">ابن منظور · ١٥ مجلَّداً · ٨١٠١ صفحة</span>
-    </button>
-    <button class="book-btn" data-book="maqayis">
-      <span class="title">📘 مقاييس اللغة</span>
-      <span class="meta">ابن فارس · ٥١١٨ مادَّة</span>
-    </button>
-    <button class="book-btn" data-book="mufradat">
-      <span class="title">📕 المفردات</span>
-      <span class="meta">الراغب الأصفهاني · ١٧١٥ مادَّة</span>
-    </button>
-  </div>
-
-  <div class="alpha-label">انتقل إلى حرف</div>
-  <div class="alpha" id="alpha"></div>
 
   <div class="prewarm-bar" id="prewarmBar" hidden>
     <div style="flex:1;min-width:0">
@@ -276,7 +224,6 @@ const filtersEl = $("#filters");
 let DATA = { maqayis: [], mufradat: [] };
 let LISAN_ROOTS = [];        // [[root_norm, chunkIdx, entryIdx], ...] reading order
 let LISAN_CHUNKS = [];       // [{idx, file, start, count, size_kb}, ...]
-let LISAN_CHAPTERS = {};     // letter → first entry index (derived from LISAN_ROOTS)
 const LISAN_CHUNK_CACHE = {}; // chunkIdx → entries array [{root, text}, ...]
 let ROOTSET = new Set();     // all known normalized roots (xref target check)
 let activeSources = new Set(["lisan", "maqayis", "mufradat"]);
@@ -316,27 +263,6 @@ async function loadInitial() {
       });
     }
     for (const r of LISAN_ROOTS) if (r[0]) ROOTSET.add(r[0]);
-    // Lisan is organized by BAB = last letter of root (classical Khalil order)
-    // and stored as entries in reading order. Detect each BAB's start with a
-    // sliding window: earliest entry index (after the preface) where ≥40% of
-    // the next 25 roots end in that letter. The ALIF chapter sits at the END
-    // of the book, so we ignore early ا hits.
-    const W = 25, MIN_FRAC = 0.4, SKIP = 50, ALIF_MIN_IDX = LISAN_ROOTS.length * 0.85;
-    for (let i = SKIP; i + W <= LISAN_ROOTS.length; i++) {
-      const counts = {};
-      for (let j = 0; j < W; j++) {
-        const root = LISAN_ROOTS[i + j][0];
-        if (!root) continue;
-        const L = root[root.length - 1];
-        counts[L] = (counts[L] || 0) + 1;
-      }
-      for (const L in counts) {
-        if (L in LISAN_CHAPTERS) continue;
-        if (counts[L] / W < MIN_FRAC) continue;
-        if (L === "ا" && i < ALIF_MIN_IDX) continue;
-        LISAN_CHAPTERS[L] = i;  // global entry index
-      }
-    }
     countEl.textContent = "";
   } catch (err) {
     countEl.textContent = "";
@@ -667,113 +593,6 @@ function renderByRoot(groups, nq) {
 }
 
 /* ============================================================
- * Sequential reader (book viewer)
- * ============================================================ */
-let readingBook = null;
-let readCursor = 0;
-const CHUNK = 25;
-const LETTERS = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي".split("");
-const alphaEl = $("#alpha");
-alphaEl.innerHTML = LETTERS.map(L => '<button class="al" data-l="' + L + '">' + L + "</button>").join("");
-
-function markAlpha(letter) {
-  [...alphaEl.children].forEach(b => b.classList.toggle("on", b.dataset.l === letter));
-}
-
-function appendDictChunk(src) {
-  const end = Math.min(DATA[src].length, readCursor + CHUNK);
-  const html = DATA[src].slice(readCursor, end).map(e => cardHTML_dict(e, "")).join("");
-  resEl.insertAdjacentHTML("beforeend", html);
-  readCursor = end;
-}
-
-let lisanReadCursor = 0;  // global entry index
-async function appendLisanEntries() {
-  if (lisanReadCursor >= LISAN_ROOTS.length) return;
-  const i = lisanReadCursor;
-  const chunk = LISAN_CHUNKS.find(c => i >= c.start && i < c.start + c.count);
-  if (!chunk) return;
-  const entries = await loadLisanChunk(chunk.idx);
-  const localStart = i - chunk.start;
-  const localEnd = Math.min(localStart + CHUNK, entries.length);
-  const html = entries.slice(localStart, localEnd).map(e =>
-    '<article class="card" data-src="lisan"><div class="card-head">' +
-    '<h2 class="root">' + esc(e.root) + '</h2>' +
-    '<span class="ref">لسان العرب</span></div>' +
-    '<div class="body">' + cardBody(e.text || "", e.root) + '</div></article>'
-  ).join("");
-  resEl.insertAdjacentHTML("beforeend", html);
-  lisanReadCursor = chunk.start + localEnd;
-}
-
-function startReading(book) {
-  readingBook = book;
-  document.body.dataset.reading = book;
-  resEl.innerHTML = "";
-  countEl.textContent = "قراءة: " + BOOKS[book].name;
-  if (book === "lisan") {
-    lisanReadCursor = 0;
-    appendLisanEntries();
-  } else {
-    readCursor = 0;
-    appendDictChunk(book);
-  }
-}
-
-/* Find the index where the dictionary proper begins (skipping any preface
- * chapters). Heuristic: first run of 3 consecutive entries that all look
- * like short single-word roots (≤4 chars). Mufradat has ~96 preface
- * entries before the روots; Maqayis has none. */
-const DICT_START = {};
-function dictStartIndex(src) {
-  if (src in DICT_START) return DICT_START[src];
-  const data = DATA[src];
-  const isRootish = e => e._n.length <= 4 && !e.root.includes(" ");
-  for (let i = 0; i + 2 < data.length; i++) {
-    if (isRootish(data[i]) && isRootish(data[i+1]) && isRootish(data[i+2])) {
-      DICT_START[src] = i;
-      return i;
-    }
-  }
-  DICT_START[src] = 0;
-  return 0;
-}
-
-function firstIndexOfLetter(src, L) {
-  const Ln = normalize(L);
-  const start = dictStartIndex(src);
-  for (let i = start; i < DATA[src].length; i++) {
-    if (DATA[src][i]._n.startsWith(Ln)) return i;
-  }
-  return -1;
-}
-
-alphaEl.addEventListener("click", e => {
-  const b = e.target.closest("button.al"); if (!b) return;
-  const L = b.dataset.l;
-  markAlpha(L);
-  if (!readingBook) return;
-  if (readingBook === "lisan") {
-    const Ln = normalize(L);
-    const firstIdx = LISAN_CHAPTERS[Ln];
-    if (firstIdx != null) {
-      lisanReadCursor = firstIdx;
-      resEl.innerHTML = "";
-      appendLisanEntries();
-      window.scrollTo({ top: 0 });
-    }
-  } else {
-    const idx = firstIndexOfLetter(readingBook, L);
-    if (idx >= 0) {
-      readCursor = idx;
-      resEl.innerHTML = "";
-      appendDictChunk(readingBook);
-      window.scrollTo({ top: 0 });
-    }
-  }
-});
-
-/* ============================================================
  * UI events
  * ============================================================ */
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
@@ -818,7 +637,6 @@ resEl.addEventListener("click", e => {
   const xr = e.target.closest("a.xref");
   if (xr) {
     e.preventDefault();
-    uiMode("search");
     qEl.value = xr.dataset.q;
     setHash(xr.dataset.q);
     doSearch(xr.dataset.q);
@@ -840,39 +658,10 @@ groupToggleEl.addEventListener("click", () => {
   doSearch(qEl.value);
 });
 
-$("#readPicker").addEventListener("click", e => {
-  const b = e.target.closest(".book-btn"); if (!b) return;
-  startReading(b.dataset.book);
-  window.scrollTo({ top: 0 });
-});
-
-const tabSearch = $("#tabSearch"), tabRead = $("#tabRead");
-function uiMode(m) {
-  document.body.dataset.mode = m;
-  tabSearch.classList.toggle("on", m === "search");
-  tabRead.classList.toggle("on", m === "read");
-  delete document.body.dataset.reading;
-  if (m === "search") {
-    readingBook = null;
-    doSearch(qEl.value);
-  } else {
-    resEl.innerHTML = "";
-    countEl.textContent = "اختر معجماً للقراءة المتسلسلة";
-    readingBook = null;
-  }
-}
-tabSearch.addEventListener("click", () => uiMode("search"));
-tabRead.addEventListener("click", () => uiMode("read"));
-
 const toTop = $("#toTop");
 toTop.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
 addEventListener("scroll", () => {
   toTop.classList.toggle("show", scrollY > 600);
-  if (!readingBook) return;
-  if (innerHeight + scrollY >= document.body.offsetHeight - 900) {
-    if (readingBook === "lisan") appendLisanEntries();
-    else if (readCursor < DATA[readingBook].length) appendDictChunk(readingBook);
-  }
 });
 
 /* ============================================================
