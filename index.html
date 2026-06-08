@@ -483,7 +483,7 @@ function cardHTML_lisanResult(rootEntry, nq) {
   const [root, page, chunkIdx] = rootEntry;
   return '<article class="card lisan-result" data-src="lisan" data-root="' + esc(root) + '" data-page="' + page + '" data-chunk="' + chunkIdx + '">' +
     '<div class="card-head"><h2 class="root">' + highlight(esc(root), nq) + '</h2>' +
-    '<span class="ref">لسان العرب · صفحة ' + arNum(page) + '</span></div>' +
+    '<span class="ref">لسان العرب</span></div>' +
     '<div class="body"><span class="loading">جارٍ التحميل…</span></div></article>';
 }
 
@@ -491,12 +491,9 @@ async function expandLisanInto(targetEl, page, chunkIdx) {
   targetEl.innerHTML = '<span class="loading">جارٍ تحميل الصفحة…</span>';
   try {
     const pages = await loadLisanChunk(chunkIdx);
-    const startIdx = pages.findIndex(p => p.page === page);
-    const slice = pages.slice(startIdx, startIdx + 3);
-    targetEl.innerHTML = slice.map(p =>
-      '<div class="lisan-page-marker">— صفحة ' + arNum(p.page) + ' —</div>' +
-      cardBody(p.text || "", "")
-    ).join("");
+    const p = pages.find(x => x.page === page);
+    if (!p) { targetEl.innerHTML = ""; return; }
+    targetEl.innerHTML = cardBody(p.text || "", "");
   } catch (err) {
     targetEl.innerHTML = '<span class="loading">تعذّر التحميل</span>';
   }
