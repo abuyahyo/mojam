@@ -95,6 +95,10 @@
   .body .para.footnote{font-size:.86em;color:var(--ink-soft);background:rgba(216,201,166,.20);border-right:3px solid var(--gold);padding:7px 12px;margin:8px 0;border-radius:6px;line-height:1.75}
   .body .fnref{display:inline-block;font-size:.72em;color:var(--ink-soft);vertical-align:super;line-height:1;margin:0 .15em;opacity:.7}
 
+  /* UZ → AR card: Latin/Cyrillic headword reads natural left-to-right */
+  .card.uz-card{direction:ltr;text-align:left}
+  .card.uz-card .body{text-align:left}
+
   .loading{color:var(--ink-soft);font-style:italic;font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif;font-size:14px}
 
   .empty{text-align:center;color:var(--ink-soft);padding:56px 20px;font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif}
@@ -475,8 +479,9 @@ function cardBody(text, own) {
 
 const copyBtn = title => '<button class="copy-btn" data-action="copy" title="' + title + '" aria-label="' + title + '">⧉</button>';
 
-function cardHTML_dict(e, nq) {
-  return '<article class="card" data-src="' + e._src + '" data-idx="' + e._idx + '">' +
+function cardHTML_dict(e, nq, extraClass) {
+  const cls = "card" + (extraClass ? " " + extraClass : "");
+  return '<article class="' + cls + '" data-src="' + e._src + '" data-idx="' + e._idx + '">' +
     '<div class="card-head"><h2 class="root">' + highlight(esc(e.root), nq) + '</h2>' +
     '<div class="head-right"><span class="ref">' + BOOKS[e._src].name + '</span>' + copyBtn("نسخ") + '</div></div>' +
     '<div class="body">' + highlight(cardBody(e.text, e._n), nq) + '</div></article>';
@@ -534,7 +539,7 @@ function doSearch(q) {
     resEl.innerHTML =
       '<div class="group-head" data-src="bushro">' + BOOKS.bushro.name + ' (أوزبكي ← عربي)' +
       ' <span class="count-pill">' + arNum(res.length) + '</span></div>' +
-      res.map(e => cardHTML_dict(e, nq)).join("");
+      res.map(e => cardHTML_dict(e, nq, "uz-card")).join("");
     return;
   }
 
