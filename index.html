@@ -481,10 +481,10 @@ function cardHTML_dict(e, nq) {
 
 function cardHTML_lisanResult(rootEntry, nq) {
   const [root, page, chunkIdx] = rootEntry;
-  return '<article class="card" data-src="lisan" data-root="' + esc(root) + '" data-page="' + page + '" data-chunk="' + chunkIdx + '">' +
+  return '<article class="card lisan-result" data-src="lisan" data-root="' + esc(root) + '" data-page="' + page + '" data-chunk="' + chunkIdx + '">' +
     '<div class="card-head"><h2 class="root">' + highlight(esc(root), nq) + '</h2>' +
     '<span class="ref">لسان العرب · صفحة ' + arNum(page) + '</span></div>' +
-    '<div class="body"><button class="load-btn" data-action="load-lisan">عرض النصّ</button></div></article>';
+    '<div class="body"><span class="loading">جارٍ التحميل…</span></div></article>';
 }
 
 async function expandLisanInto(targetEl, page, chunkIdx) {
@@ -574,6 +574,40 @@ function doSearch(q) {
   countEl.textContent = arNum(total) + " نتيجة" + (expanded ? " (من داخل الشروح)" : "");
 
   resEl.innerHTML = groupMode === "root" ? renderByRoot(groups, nq) : renderByBook(groups, nq);
+  hydrateLisanCards();
+}
+
+/* Async-fill every Lisan result card with its page text so the layout
+ * matches Maqayis / Mufradat. Concurrency-limited; cards still respond to
+ * load-btn clicks (used by the merged-card section). */
+const LISAN_HYDRATE_CONCURRENCY = 4;
+async function hydrateLisanCards() {
+  const cards = [...resEl.querySelectorAll(".lisan-result, .merged-card .section[data-src=lisan]")];
+  const tasks = cards
+    .map(card => {
+      const body = card.querySelector(".body, .sec-body");
+      if (!body) return null;
+      // merged-card sections include the manual load button — auto-load there too
+      const loadBtn = body.querySelector("button.load-btn");
+      const page = parseInt(card.dataset.page || (loadBtn && loadBtn.dataset.page) || "0", 10);
+      const chunkIdx = parseInt(card.dataset.chunk || (loadBtn && loadBtn.dataset.chunk) || "-1", 10);
+      if (!page || chunkIdx < 0) return null;
+      return { body, page, chunkIdx };
+    })
+    .filter(Boolean);
+  let next = 0;
+  const workers = [];
+  for (let w = 0; w < LISAN_HYDRATE_CONCURRENCY; w++) {
+    workers.push((async () => {
+      while (next < tasks.length) {
+        const t = tasks[next++];
+        try {
+          await expandLisanInto(t.body, t.page, t.chunkIdx);
+        } catch (e) { /* leave body as-is on failure */ }
+      }
+    })());
+  }
+  await Promise.all(workers);
 }
 
 function renderByBook(groups, nq) {
