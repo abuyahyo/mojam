@@ -88,6 +88,7 @@
   .body .hadith{color:var(--accent-bright);font-weight:600}
   .body a.xref{color:var(--accent-bright);cursor:pointer;border-bottom:1px dashed var(--accent-bright);text-decoration:none}
   .body .para.footnote{font-size:.86em;color:var(--ink-soft);background:rgba(216,201,166,.20);border-right:3px solid var(--gold);padding:7px 12px;margin:8px 0;border-radius:6px;line-height:1.75}
+  .body .fnref{display:inline-block;font-size:.72em;color:var(--ink-soft);vertical-align:super;line-height:1;margin:0 .15em;opacity:.7}
 
   .loading{color:var(--ink-soft);font-style:italic;font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif;font-size:14px}
 
@@ -415,13 +416,31 @@ function styleParagraph(p, own) {
   return s;
 }
 
+/* A line like "«٤»" is a footnote reference number that the scraper put on
+ * its own paragraph. Pull it onto the previous paragraph as a small muted
+ * superscript so the reading flow stays intact. */
+const FN_REF_ONLY = /^\s*[«‹]\s*[0-9٠-٩]+\s*[»›]\s*$/;
+
 function cardBody(text, own) {
-  return text.split(/\n+/).map(p => {
-    if (!p.trim()) return "";
+  const rawParas = text.split(/\n+/);
+  // Merge "«N»" stand-alone refs into the previous paragraph
+  const paras = [];
+  for (const p of rawParas) {
+    if (!p.trim()) continue;
+    if (FN_REF_ONLY.test(p) && paras.length) {
+      paras[paras.length - 1].refs.push(p.trim());
+    } else {
+      paras.push({ text: p, refs: [] });
+    }
+  }
+  return paras.map(({ text: p, refs }) => {
     const isFootnote = FOOTNOTE_HEAD.test(p);
     const stripped = isFootnote ? p.replace(/^\s*[—–-]\s+/, "") : p;
     const cls = "para" + (isFootnote ? " footnote" : "");
-    return '<p class="' + cls + '">' + styleParagraph(stripped, own) + '</p>';
+    const refsHtml = refs.map(r =>
+      ' <span class="fnref">' + esc(r) + '</span>'
+    ).join("");
+    return '<p class="' + cls + '">' + styleParagraph(stripped, own) + refsHtml + '</p>';
   }).join("");
 }
 
