@@ -380,20 +380,45 @@ function doSearch(q) {
     countEl.textContent = "";
     return;
   }
+  if (nq.length < 2) {
+    resEl.innerHTML = '<div class="empty"><span class="sym">…</span><div class="msg">اكتب حرفين على الأقل</div></div>';
+    countEl.textContent = "";
+    return;
+  }
 
-  // pass 1: title-only across all active sources
+  // For title search, also try the query with leading "ال" stripped — so a user
+  // typing "الكتاب" can hit a "كتاب" entry. Keep the original for body search.
+  const nqCore = (nq.startsWith("ال") && nq.length >= 4) ? nq.slice(2) : nq;
+  const titleQs = nq === nqCore ? [nq] : [nq, nqCore];
+
+  // pass 1: title-only across all active sources (try both forms)
   const groups = {};
   let total = 0;
+  const mergeUnique = (arr, more) => {
+    const seen = new Set(arr.map(x => Array.isArray(x) ? x.join("|") : x._idx + ":" + x._src));
+    for (const x of more) {
+      const k = Array.isArray(x) ? x.join("|") : x._idx + ":" + x._src;
+      if (!seen.has(k)) { seen.add(k); arr.push(x); }
+    }
+    return arr;
+  };
+
   if (activeSources.has("lisan")) {
-    const res = searchLisan(nq).slice(0, 40);
+    let res = [];
+    for (const tq of titleQs) res = mergeUnique(res, searchLisan(tq));
+    res = res.slice(0, 40);
     if (res.length) { groups.lisan = res; total += res.length; }
   }
   if (activeSources.has("maqayis")) {
-    const res = searchBookTitle("maqayis", nq).slice(0, 40);
+    let res = [];
+    for (const tq of titleQs) res = mergeUnique(res, searchBookTitle("maqayis", tq));
+    res = res.slice(0, 40);
     if (res.length) { groups.maqayis = res; total += res.length; }
   }
   if (activeSources.has("mufradat")) {
-    const res = searchBookTitle("mufradat", nq).slice(0, 40);
+    let res = [];
+    for (const tq of titleQs) res = mergeUnique(res, searchBookTitle("mufradat", tq));
+    res = res.slice(0, 40);
     if (res.length) { groups.mufradat = res; total += res.length; }
   }
 
