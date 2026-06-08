@@ -1,5 +1,9 @@
 _refs/
 *.log
+# Bushro is third-party, copyrighted by SamAndroidDeveloper. Local-only use;
+# never committed to the public repo / Pages deploy.
+data/bushro.json
+data/bushro/
 data/lisan/markers_progress.json
 debug_roots.py
 inspect_data.py
