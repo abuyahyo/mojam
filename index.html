@@ -135,6 +135,7 @@
 
   .load-btn{background:var(--lisan);color:#fff;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-family:"Amiri",serif;font-size:15px;margin-top:8px}
   .load-btn:active{transform:scale(.96)}
+  .lisan-full-btn{display:block;background:transparent;color:var(--lisan);border:1px solid var(--lisan);padding:6px 14px;font-size:13px;margin-top:14px}
   .loading{color:var(--ink-soft);font-style:italic;font-family:"Amiri",serif;font-size:14px}
 
   .empty{text-align:center;color:var(--ink-soft);padding:56px 20px;font-family:"Amiri",serif}
@@ -487,13 +488,44 @@ function cardHTML_lisanResult(rootEntry, nq) {
     '<div class="body"><span class="loading">جارٍ التحميل…</span></div></article>';
 }
 
-async function expandLisanInto(targetEl, page, chunkIdx) {
+/* A Lisan page may hold several root entries. Each entry starts on its own
+ * line as "الجذر:" (matching build_lisan.py's ROOT_RE). Given the searched
+ * root, slice out just its entry — from its marker line up to the next root
+ * marker — so the result shows only the word the user looked up. Falls back
+ * to the whole page when no boundary can be located. */
+const LISAN_MARKER_RE = /^([ء-ي]{2,6})\s*:$/;
+function extractLisanEntry(text, rootNorm) {
+  if (!rootNorm) return null;
+  const lines = text.split("\n");
+  const markers = []; // {i, root}
+  for (let i = 0; i < lines.length; i++) {
+    const m = normalize(lines[i]).match(LISAN_MARKER_RE);
+    if (m) markers.push({ i, root: m[1] });
+  }
+  if (!markers.length) return null;
+  let hit = markers.findIndex(mk => mk.root === rootNorm);
+  if (hit === -1) hit = markers.findIndex(mk => mk.root.startsWith(rootNorm) || rootNorm.startsWith(mk.root));
+  if (hit === -1) return null;
+  const start = markers[hit].i;
+  const end = hit + 1 < markers.length ? markers[hit + 1].i : lines.length;
+  return lines.slice(start, end).join("\n").trim();
+}
+
+async function expandLisanInto(targetEl, page, chunkIdx, root) {
   targetEl.innerHTML = '<span class="loading">جارٍ تحميل الصفحة…</span>';
   try {
     const pages = await loadLisanChunk(chunkIdx);
     const p = pages.find(x => x.page === page);
     if (!p) { targetEl.innerHTML = ""; return; }
-    targetEl.innerHTML = cardBody(p.text || "", "");
+    const full = p.text || "";
+    const entry = extractLisanEntry(full, root);
+    if (entry) {
+      targetEl.innerHTML = cardBody(entry, root) +
+        '<button class="load-btn lisan-full-btn" data-action="lisan-full" data-page="' +
+        page + '" data-chunk="' + chunkIdx + '">عرض الصفحة كاملة</button>';
+    } else {
+      targetEl.innerHTML = cardBody(full, root || "");
+    }
   } catch (err) {
     targetEl.innerHTML = '<span class="loading">تعذّر التحميل</span>';
   }
@@ -588,8 +620,9 @@ async function hydrateLisanCards() {
       const loadBtn = body.querySelector("button.load-btn");
       const page = parseInt(card.dataset.page || (loadBtn && loadBtn.dataset.page) || "0", 10);
       const chunkIdx = parseInt(card.dataset.chunk || (loadBtn && loadBtn.dataset.chunk) || "-1", 10);
+      const root = card.dataset.root || (loadBtn && loadBtn.dataset.root) || "";
       if (!page || chunkIdx < 0) return null;
-      return { body, page, chunkIdx };
+      return { body, page, chunkIdx, root };
     })
     .filter(Boolean);
   let next = 0;
@@ -599,7 +632,7 @@ async function hydrateLisanCards() {
       while (next < tasks.length) {
         const t = tasks[next++];
         try {
-          await expandLisanInto(t.body, t.page, t.chunkIdx);
+          await expandLisanInto(t.body, t.page, t.chunkIdx, t.root);
         } catch (e) { /* leave body as-is on failure */ }
       }
     })());
@@ -656,7 +689,7 @@ function renderByRoot(groups, nq) {
       html += '<span class="sec-label">' + BOOKS[src].name + '</span>';
       if (src === "lisan") {
         html += '<div class="sec-body"><div style="color:var(--ink-soft);font-size:13px;margin-bottom:8px">صفحة ' + arNum(item[1]) + '</div>' +
-                '<button class="load-btn" data-action="load-lisan" data-page="' + item[1] + '" data-chunk="' + item[2] + '">عرض النصّ</button></div>';
+                '<button class="load-btn" data-action="load-lisan" data-root="' + esc(item[0]) + '" data-page="' + item[1] + '" data-chunk="' + item[2] + '">عرض النصّ</button></div>';
       } else {
         html += '<div class="sec-body">' + highlight(cardBody(item.text, item._n), nq) + '</div>';
       }
@@ -807,13 +840,16 @@ resEl.addEventListener("click", e => {
   const lb = e.target.closest("button.load-btn");
   if (lb) {
     // load-btn carries page+chunk in dataset (merged-card form), or inherits
-    // them from the parent .card (by-book form). Support both.
+    // them from the parent .card (by-book form). Support both. data-action
+    // "lisan-full" reloads the whole page; otherwise show just the root entry.
     const card = lb.closest(".card");
     const page = parseInt(lb.dataset.page || (card && card.dataset.page) || "0", 10);
     const chunkIdx = parseInt(lb.dataset.chunk || (card && card.dataset.chunk) || "-1", 10);
     if (!page || chunkIdx < 0) return;
     const target = card ? card.querySelector(".body") : lb.parentElement;
-    expandLisanInto(target, page, chunkIdx);
+    const root = lb.dataset.action === "lisan-full"
+      ? "" : (lb.dataset.root || (card && card.dataset.root) || "");
+    expandLisanInto(target, page, chunkIdx, root);
     return;
   }
   const xr = e.target.closest("a.xref");
