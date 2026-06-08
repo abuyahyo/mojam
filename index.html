@@ -416,19 +416,25 @@ function styleParagraph(p, own) {
   return s;
 }
 
-/* A line like "«٤»" is a footnote reference number that the scraper put on
- * its own paragraph. Pull it onto the previous paragraph as a small muted
- * superscript so the reading flow stays intact. */
+/* The scraper sometimes drops orphan tokens — a guillemeted ref like "«٤»"
+ * or a lone sentence-ending period — on their own paragraph. Fold these
+ * into the previous paragraph so the reading flow stays uninterrupted.
+ *
+ * - FN_REF_ONLY: «N» becomes a small muted superscript span
+ * - STRAY_PUNCT_ONLY: a lone . , ، ; : is appended directly to the tail
+ */
 const FN_REF_ONLY = /^\s*[«‹]\s*[0-9٠-٩]+\s*[»›]\s*$/;
+const STRAY_PUNCT_ONLY = /^\s*[.,،؛:؟!]+\s*$/;
 
 function cardBody(text, own) {
   const rawParas = text.split(/\n+/);
-  // Merge "«N»" stand-alone refs into the previous paragraph
   const paras = [];
   for (const p of rawParas) {
     if (!p.trim()) continue;
     if (FN_REF_ONLY.test(p) && paras.length) {
       paras[paras.length - 1].refs.push(p.trim());
+    } else if (STRAY_PUNCT_ONLY.test(p) && paras.length) {
+      paras[paras.length - 1].text = paras[paras.length - 1].text.replace(/\s+$/, "") + p.trim();
     } else {
       paras.push({ text: p, refs: [] });
     }
