@@ -48,22 +48,6 @@
   .tool.on{background:var(--accent);color:#f7efdd;border-color:var(--accent)}
   .tool.icon{padding:8px 14px;min-width:48px;justify-content:center;font-weight:700}
 
-  /* Comparison card (group-by-root mode) */
-  .merged-card{background:rgba(251,245,230,.78);border:1px solid var(--line);border-radius:16px;padding:clamp(14px,3.5vw,20px);margin-bottom:14px;box-shadow:0 2px 12px rgba(43,33,24,.05);animation:rise .35s ease both}
-  .merged-card>.root{font-family:"Amiri","Scheherazade New",serif;font-weight:700;color:var(--accent);font-size:clamp(26px,6.5vw,36px);text-align:center;padding-bottom:8px;border-bottom:2px solid var(--line);margin-bottom:12px}
-  .merged-card .section{margin-top:14px;padding-right:12px}
-  .merged-card .section:first-of-type{margin-top:4px}
-  .merged-card .sec-label{display:inline-block;font-family:"Amiri",serif;font-weight:700;font-size:14px;color:#fff;padding:3px 12px;border-radius:12px;margin-bottom:8px}
-  .merged-card .section[data-src="lisan"]{border-right:4px solid var(--lisan)}
-  .merged-card .section[data-src="lisan"] .sec-label{background:var(--lisan)}
-  .merged-card .section[data-src="maqayis"]{border-right:4px solid var(--maqayis)}
-  .merged-card .section[data-src="maqayis"] .sec-label{background:var(--maqayis)}
-  .merged-card .section[data-src="mufradat"]{border-right:4px solid var(--mufradat)}
-  .merged-card .section[data-src="mufradat"] .sec-label{background:var(--mufradat)}
-  .merged-card .section[data-src="bushro"]{border-right:4px solid var(--bushro)}
-  .merged-card .section[data-src="bushro"] .sec-label{background:var(--bushro)}
-  .merged-card .sec-body{font-size:calc(clamp(15px,4vw,18px)*var(--reader-scale));line-height:2}
-
   .searchbar{position:relative;margin-bottom:10px}
   .searchbar input{width:100%;font-family:"Amiri",serif;font-size:clamp(20px,5.5vw,28px);font-weight:700;color:var(--ink);background:#fbf5e6;border:1.5px solid var(--line);border-radius:16px;padding:14px 54px 14px 20px;outline:none;text-align:right;box-shadow:0 2px 10px rgba(124,45,18,.05)}
   .searchbar input:focus{border-color:var(--accent-bright)}
@@ -107,8 +91,6 @@
   .body a.xref{color:var(--accent-bright);cursor:pointer;border-bottom:1px dashed var(--accent-bright);text-decoration:none}
   .body .para.footnote{font-size:.86em;color:var(--ink-soft);background:rgba(216,201,166,.20);border-right:3px solid var(--gold);padding:7px 12px;margin:8px 0;border-radius:6px;line-height:1.75}
 
-  .load-btn{background:var(--lisan);color:#fff;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-family:"Amiri",serif;font-size:15px;margin-top:8px}
-  .load-btn:active{transform:scale(.96)}
   .loading{color:var(--ink-soft);font-style:italic;font-family:"Amiri",serif;font-size:14px}
 
   .empty{text-align:center;color:var(--ink-soft);padding:56px 20px;font-family:"Amiri",serif}
@@ -143,7 +125,6 @@
   <div class="toolbar">
     <button class="tool icon" id="incBtn" title="تكبير الخطّ">ا+</button>
     <button class="tool icon" id="decBtn" title="تصغير الخطّ">ا−</button>
-    <button class="tool group-toggle" id="groupToggle" title="تبديل تجميع النتائج">🗂️ مجموع بالكتاب</button>
   </div>
 
   <div class="searchbar">
@@ -233,7 +214,6 @@ const LISAN_CHUNK_CACHE = {}; // chunkIdx → entries array [{root, text}, ...]
 let ROOTSET = new Set();     // all known normalized roots (xref target check)
 let HAS_BUSHRO = false;      // set after data/bushro.json loads successfully
 let activeSources = new Set(["lisan", "maqayis", "mufradat"]);
-let groupMode = localStorage.getItem("group_mode") || "book"; // "book" | "root"
 let scale = parseFloat(localStorage.getItem("reader_scale") || "1") || 1;
 
 /* ============================================================
@@ -533,25 +513,22 @@ function doSearch(q) {
   }
   countEl.textContent = arNum(total) + " نتيجة" + (expanded ? " (من داخل الشروح)" : "");
 
-  resEl.innerHTML = groupMode === "root" ? renderByRoot(groups, nq) : renderByBook(groups, nq);
+  resEl.innerHTML = renderByBook(groups, nq);
   hydrateLisanCards();
 }
 
-/* Async-fill every Lisan result card with its page text so the layout
- * matches Maqayis / Mufradat. Concurrency-limited; cards still respond to
- * load-btn clicks (used by the merged-card section). */
+/* Async-fill every Lisan result card with its entry text so the layout
+ * matches Maqayis / Mufradat. Concurrency-limited. */
 const LISAN_HYDRATE_CONCURRENCY = 4;
 async function hydrateLisanCards() {
-  const cards = [...resEl.querySelectorAll(".lisan-result, .merged-card .section[data-src=lisan]")];
+  const cards = [...resEl.querySelectorAll(".lisan-result")];
   const tasks = cards
     .map(card => {
-      const body = card.querySelector(".body, .sec-body");
+      const body = card.querySelector(".body");
       if (!body) return null;
-      // merged-card sections include the manual load button — auto-load there too
-      const loadBtn = body.querySelector("button.load-btn");
-      const chunkIdx = parseInt(card.dataset.chunk || (loadBtn && loadBtn.dataset.chunk) || "-1", 10);
-      const entryIdx = parseInt(card.dataset.entry || (loadBtn && loadBtn.dataset.entry) || "-1", 10);
-      const root = card.dataset.root || (loadBtn && loadBtn.dataset.root) || "";
+      const chunkIdx = parseInt(card.dataset.chunk || "-1", 10);
+      const entryIdx = parseInt(card.dataset.entry || "-1", 10);
+      const root = card.dataset.root || "";
       if (chunkIdx < 0 || entryIdx < 0) return null;
       return { body, chunkIdx, entryIdx, root };
     })
@@ -587,49 +564,6 @@ function renderByBook(groups, nq) {
   return html;
 }
 
-/* Merge groups by normalized root. Each root → up to 3 sections (one per book).
- * Roots that only appear in one book still render as a merged card with that
- * one section, but the search uses the same layout for visual consistency. */
-function renderByRoot(groups, nq) {
-  const byRoot = new Map();
-  const order = []; // preserve first-seen order across all books
-  function bump(rootNorm, displayRoot, src, item) {
-    if (!byRoot.has(rootNorm)) {
-      byRoot.set(rootNorm, { displayRoot, entries: {} });
-      order.push(rootNorm);
-    }
-    const slot = byRoot.get(rootNorm).entries;
-    if (!slot[src]) slot[src] = item; // first match per book wins
-  }
-  // order books so that the "richer" entries come first
-  for (const src of ["maqayis", "mufradat", "bushro", "lisan"]) {
-    const items = groups[src] || [];
-    for (const it of items) {
-      if (src === "lisan") bump(it[0], it[0], src, it);
-      else bump(it._n, it.root, src, it);
-    }
-  }
-  let html = "";
-  for (const rootNorm of order) {
-    const { displayRoot, entries } = byRoot.get(rootNorm);
-    html += '<article class="merged-card"><h2 class="root">' + highlight(esc(displayRoot), nq) + '</h2>';
-    for (const src of ["maqayis", "mufradat", "bushro", "lisan"]) {
-      const item = entries[src];
-      if (!item) continue;
-      html += '<div class="section" data-src="' + src + '">';
-      html += '<span class="sec-label">' + BOOKS[src].name + '</span>';
-      if (src === "lisan") {
-        html += '<div class="sec-body"><button class="load-btn" data-action="load-lisan" data-root="' + esc(item[0]) + '" data-chunk="' + item[1] + '" data-entry="' + item[2] + '">عرض النصّ</button></div>';
-      } else {
-        html += '<div class="sec-body">' + highlight(cardBody(item.text, item._n), nq) + '</div>';
-      }
-      html += '</div>';
-    }
-    html += '</article>';
-  }
-  return html;
-}
-
 /* ============================================================
  * UI events
  * ============================================================ */
@@ -659,19 +593,6 @@ filtersEl.addEventListener("click", e => {
 });
 
 resEl.addEventListener("click", e => {
-  const lb = e.target.closest("button.load-btn");
-  if (lb) {
-    // load-btn carries chunk+entry in dataset (merged-card form), or inherits
-    // them from the parent .card (by-book form). Support both.
-    const card = lb.closest(".card");
-    const chunkIdx = parseInt(lb.dataset.chunk || (card && card.dataset.chunk) || "-1", 10);
-    const entryIdx = parseInt(lb.dataset.entry || (card && card.dataset.entry) || "-1", 10);
-    if (chunkIdx < 0 || entryIdx < 0) return;
-    const target = card ? card.querySelector(".body") : lb.parentElement;
-    const root = lb.dataset.root || (card && card.dataset.root) || "";
-    expandLisanInto(target, chunkIdx, entryIdx, root);
-    return;
-  }
   const xr = e.target.closest("a.xref");
   if (xr) {
     e.preventDefault();
@@ -680,20 +601,6 @@ resEl.addEventListener("click", e => {
     doSearch(xr.dataset.q);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-});
-
-const groupToggleEl = $("#groupToggle");
-function refreshGroupToggleLabel() {
-  groupToggleEl.textContent = groupMode === "book"
-    ? "🗂️ مجموع بالكتاب"
-    : "📚 جنبًا إلى جنب";
-}
-refreshGroupToggleLabel();
-groupToggleEl.addEventListener("click", () => {
-  groupMode = groupMode === "book" ? "root" : "book";
-  localStorage.setItem("group_mode", groupMode);
-  refreshGroupToggleLabel();
-  doSearch(qEl.value);
 });
 
 const toTop = $("#toTop");
