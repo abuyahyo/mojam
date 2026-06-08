@@ -296,10 +296,26 @@ async function loadInitial() {
       });
     }
     for (const r of LISAN_ROOTS) if (r[0]) ROOTSET.add(r[0]);
-    // Lisan chapter index: first page per starting letter
-    for (const [root, page] of LISAN_ROOTS) {
-      const L = root[0];
-      if (L && !(L in LISAN_CHAPTERS)) LISAN_CHAPTERS[L] = page;
+    // Lisan is organized by BAB = last letter of root (classical Khalil order).
+    // Detect each BAB's start with a sliding window: earliest position (after
+    // the preface) where ≥40% of the next 25 roots end in that letter. The
+    // ALIF chapter sits at the END of the book, so we ignore early ا hits.
+    const W = 25, MIN_FRAC = 0.4, SKIP = 50, ALIF_MIN_PAGE = 7000;
+    for (let i = SKIP; i + W <= LISAN_ROOTS.length; i++) {
+      const counts = {};
+      for (let j = 0; j < W; j++) {
+        const root = LISAN_ROOTS[i + j][0];
+        if (!root) continue;
+        const L = root[root.length - 1];
+        counts[L] = (counts[L] || 0) + 1;
+      }
+      for (const L in counts) {
+        if (L in LISAN_CHAPTERS) continue;
+        if (counts[L] / W < MIN_FRAC) continue;
+        const page = LISAN_ROOTS[i][1];
+        if (L === "ا" && page < ALIF_MIN_PAGE) continue;
+        LISAN_CHAPTERS[L] = page;
+      }
     }
     countEl.textContent = "";
   } catch (err) {
