@@ -130,6 +130,10 @@
   .body .ayah-ref{color:var(--gold);font-size:.82em;font-style:normal}
   .body .hadith{color:var(--accent-bright);font-weight:600}
   .body a.xref{color:var(--accent-bright);cursor:pointer;border-bottom:1px dashed var(--accent-bright);text-decoration:none}
+  .body .notes{margin-top:18px;padding:12px 16px;background:rgba(216,201,166,.18);border-radius:10px;border-right:3px solid var(--gold);font-size:.86em;color:var(--ink-soft);line-height:1.85}
+  .body .notes .nlabel{display:block;color:var(--gold);font-family:"Amiri",serif;font-size:13px;margin-bottom:6px}
+  .body .notes .para{margin-bottom:.35em}
+  .body .notes .para:last-child{margin-bottom:0}
   .lisan-page-marker{display:block;margin:14px 0 8px;color:var(--lisan);font-family:"Amiri",serif;font-size:13px;border-top:1px dashed var(--line);padding-top:8px}
 
   .load-btn{background:var(--lisan);color:#fff;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-family:"Amiri",serif;font-size:15px;margin-top:8px}
@@ -451,14 +455,41 @@ function styleQuran(s) {
   return s.replace(/\[([^\[\]]*[0-9٠-٩][^\[\]]*)\]/g, '<span class="ayah-ref">[$1]</span>');
 }
 
+/* Editor footnotes typically follow the main text as a tailing block whose
+ * first paragraph begins with "— (١)" / "—(١)" or similar. Split them off so
+ * the main reading area stays clean and notes render in a muted footer. */
+const FOOTNOTE_HEAD = /^\s*[—–-]\s*\(\s*[0-9٠-٩]+\s*\)/;
+function splitFootnotes(paras) {
+  for (let i = 0; i < paras.length; i++) {
+    if (FOOTNOTE_HEAD.test(paras[i])) {
+      return [paras.slice(0, i), paras.slice(i)];
+    }
+  }
+  return [paras, []];
+}
+
+function styleParagraph(p, own) {
+  let s = esc(p);
+  s = styleHadith(s);
+  s = linkifyXref(s, own || "");
+  s = styleQuran(s);
+  return s;
+}
+
 function cardBody(text, own) {
-  return text.split(/\n\n+/).map(p => {
-    let s = esc(p);
-    s = styleHadith(s);
-    s = linkifyXref(s, own || "");
-    s = styleQuran(s);
-    return '<p class="para">' + s + '</p>';
-  }).join("");
+  const paras = text.split(/\n\n+/);
+  const [main, notes] = splitFootnotes(paras);
+  let html = main.map(p => '<p class="para">' + styleParagraph(p, own) + '</p>').join("");
+  if (notes.length) {
+    html += '<div class="notes"><span class="nlabel">حواشي المحقّق</span>' +
+      notes.map(p => {
+        // strip the leading "— " marker if present — already visually demarcated
+        const stripped = p.replace(/^\s*[—–-]\s+/, "");
+        return '<p class="para">' + styleParagraph(stripped, own) + '</p>';
+      }).join("") +
+      '</div>';
+  }
+  return html;
 }
 
 function cardHTML_dict(e, nq) {
