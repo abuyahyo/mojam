@@ -1,0 +1,8 @@
+_refs/
+*.log
+data/lisan/markers_progress.json
+debug_roots.py
+inspect_data.py
+inspect_html.py
+test_extract.py
+__pycache__/

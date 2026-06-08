@@ -1,0 +1,359 @@
+[
+  {
+    "idx": 0,
+    "first_page": 1,
+    "last_page": 162,
+    "file": "chunks/chunk_000.json",
+    "size_kb": 901
+  },
+  {
+    "idx": 1,
+    "first_page": 163,
+    "last_page": 324,
+    "file": "chunks/chunk_001.json",
+    "size_kb": 876
+  },
+  {
+    "idx": 2,
+    "first_page": 325,
+    "last_page": 486,
+    "file": "chunks/chunk_002.json",
+    "size_kb": 851
+  },
+  {
+    "idx": 3,
+    "first_page": 487,
+    "last_page": 648,
+    "file": "chunks/chunk_003.json",
+    "size_kb": 888
+  },
+  {
+    "idx": 4,
+    "first_page": 649,
+    "last_page": 810,
+    "file": "chunks/chunk_004.json",
+    "size_kb": 908
+  },
+  {
+    "idx": 5,
+    "first_page": 811,
+    "last_page": 972,
+    "file": "chunks/chunk_005.json",
+    "size_kb": 909
+  },
+  {
+    "idx": 6,
+    "first_page": 973,
+    "last_page": 1134,
+    "file": "chunks/chunk_006.json",
+    "size_kb": 906
+  },
+  {
+    "idx": 7,
+    "first_page": 1135,
+    "last_page": 1296,
+    "file": "chunks/chunk_007.json",
+    "size_kb": 920
+  },
+  {
+    "idx": 8,
+    "first_page": 1297,
+    "last_page": 1458,
+    "file": "chunks/chunk_008.json",
+    "size_kb": 931
+  },
+  {
+    "idx": 9,
+    "first_page": 1459,
+    "last_page": 1620,
+    "file": "chunks/chunk_009.json",
+    "size_kb": 990
+  },
+  {
+    "idx": 10,
+    "first_page": 1621,
+    "last_page": 1782,
+    "file": "chunks/chunk_010.json",
+    "size_kb": 1005
+  },
+  {
+    "idx": 11,
+    "first_page": 1783,
+    "last_page": 1944,
+    "file": "chunks/chunk_011.json",
+    "size_kb": 987
+  },
+  {
+    "idx": 12,
+    "first_page": 1945,
+    "last_page": 2106,
+    "file": "chunks/chunk_012.json",
+    "size_kb": 1012
+  },
+  {
+    "idx": 13,
+    "first_page": 2107,
+    "last_page": 2268,
+    "file": "chunks/chunk_013.json",
+    "size_kb": 1011
+  },
+  {
+    "idx": 14,
+    "first_page": 2269,
+    "last_page": 2430,
+    "file": "chunks/chunk_014.json",
+    "size_kb": 985
+  },
+  {
+    "idx": 15,
+    "first_page": 2431,
+    "last_page": 2592,
+    "file": "chunks/chunk_015.json",
+    "size_kb": 988
+  },
+  {
+    "idx": 16,
+    "first_page": 2593,
+    "last_page": 2754,
+    "file": "chunks/chunk_016.json",
+    "size_kb": 1005
+  },
+  {
+    "idx": 17,
+    "first_page": 2755,
+    "last_page": 2916,
+    "file": "chunks/chunk_017.json",
+    "size_kb": 984
+  },
+  {
+    "idx": 18,
+    "first_page": 2917,
+    "last_page": 3078,
+    "file": "chunks/chunk_018.json",
+    "size_kb": 945
+  },
+  {
+    "idx": 19,
+    "first_page": 3079,
+    "last_page": 3240,
+    "file": "chunks/chunk_019.json",
+    "size_kb": 919
+  },
+  {
+    "idx": 20,
+    "first_page": 3241,
+    "last_page": 3402,
+    "file": "chunks/chunk_020.json",
+    "size_kb": 916
+  },
+  {
+    "idx": 21,
+    "first_page": 3403,
+    "last_page": 3564,
+    "file": "chunks/chunk_021.json",
+    "size_kb": 894
+  },
+  {
+    "idx": 22,
+    "first_page": 3565,
+    "last_page": 3726,
+    "file": "chunks/chunk_022.json",
+    "size_kb": 904
+  },
+  {
+    "idx": 23,
+    "first_page": 3727,
+    "last_page": 3888,
+    "file": "chunks/chunk_023.json",
+    "size_kb": 915
+  },
+  {
+    "idx": 24,
+    "first_page": 3889,
+    "last_page": 4050,
+    "file": "chunks/chunk_024.json",
+    "size_kb": 932
+  },
+  {
+    "idx": 25,
+    "first_page": 4051,
+    "last_page": 4212,
+    "file": "chunks/chunk_025.json",
+    "size_kb": 926
+  },
+  {
+    "idx": 26,
+    "first_page": 4213,
+    "last_page": 4374,
+    "file": "chunks/chunk_026.json",
+    "size_kb": 903
+  },
+  {
+    "idx": 27,
+    "first_page": 4375,
+    "last_page": 4536,
+    "file": "chunks/chunk_027.json",
+    "size_kb": 918
+  },
+  {
+    "idx": 28,
+    "first_page": 4537,
+    "last_page": 4698,
+    "file": "chunks/chunk_028.json",
+    "size_kb": 917
+  },
+  {
+    "idx": 29,
+    "first_page": 4699,
+    "last_page": 4860,
+    "file": "chunks/chunk_029.json",
+    "size_kb": 926
+  },
+  {
+    "idx": 30,
+    "first_page": 4861,
+    "last_page": 5022,
+    "file": "chunks/chunk_030.json",
+    "size_kb": 945
+  },
+  {
+    "idx": 31,
+    "first_page": 5023,
+    "last_page": 5184,
+    "file": "chunks/chunk_031.json",
+    "size_kb": 958
+  },
+  {
+    "idx": 32,
+    "first_page": 5185,
+    "last_page": 5346,
+    "file": "chunks/chunk_032.json",
+    "size_kb": 933
+  },
+  {
+    "idx": 33,
+    "first_page": 5347,
+    "last_page": 5508,
+    "file": "chunks/chunk_033.json",
+    "size_kb": 935
+  },
+  {
+    "idx": 34,
+    "first_page": 5509,
+    "last_page": 5670,
+    "file": "chunks/chunk_034.json",
+    "size_kb": 911
+  },
+  {
+    "idx": 35,
+    "first_page": 5671,
+    "last_page": 5832,
+    "file": "chunks/chunk_035.json",
+    "size_kb": 948
+  },
+  {
+    "idx": 36,
+    "first_page": 5833,
+    "last_page": 5994,
+    "file": "chunks/chunk_036.json",
+    "size_kb": 915
+  },
+  {
+    "idx": 37,
+    "first_page": 5995,
+    "last_page": 6156,
+    "file": "chunks/chunk_037.json",
+    "size_kb": 916
+  },
+  {
+    "idx": 38,
+    "first_page": 6157,
+    "last_page": 6318,
+    "file": "chunks/chunk_038.json",
+    "size_kb": 922
+  },
+  {
+    "idx": 39,
+    "first_page": 6319,
+    "last_page": 6480,
+    "file": "chunks/chunk_039.json",
+    "size_kb": 992
+  },
+  {
+    "idx": 40,
+    "first_page": 6481,
+    "last_page": 6642,
+    "file": "chunks/chunk_040.json",
+    "size_kb": 973
+  },
+  {
+    "idx": 41,
+    "first_page": 6643,
+    "last_page": 6804,
+    "file": "chunks/chunk_041.json",
+    "size_kb": 980
+  },
+  {
+    "idx": 42,
+    "first_page": 6805,
+    "last_page": 6966,
+    "file": "chunks/chunk_042.json",
+    "size_kb": 993
+  },
+  {
+    "idx": 43,
+    "first_page": 6967,
+    "last_page": 7128,
+    "file": "chunks/chunk_043.json",
+    "size_kb": 991
+  },
+  {
+    "idx": 44,
+    "first_page": 7129,
+    "last_page": 7290,
+    "file": "chunks/chunk_044.json",
+    "size_kb": 1003
+  },
+  {
+    "idx": 45,
+    "first_page": 7291,
+    "last_page": 7452,
+    "file": "chunks/chunk_045.json",
+    "size_kb": 986
+  },
+  {
+    "idx": 46,
+    "first_page": 7453,
+    "last_page": 7614,
+    "file": "chunks/chunk_046.json",
+    "size_kb": 942
+  },
+  {
+    "idx": 47,
+    "first_page": 7615,
+    "last_page": 7776,
+    "file": "chunks/chunk_047.json",
+    "size_kb": 954
+  },
+  {
+    "idx": 48,
+    "first_page": 7777,
+    "last_page": 7938,
+    "file": "chunks/chunk_048.json",
+    "size_kb": 981
+  },
+  {
+    "idx": 49,
+    "first_page": 7939,
+    "last_page": 8100,
+    "file": "chunks/chunk_049.json",
+    "size_kb": 1004
+  },
+  {
+    "idx": 50,
+    "first_page": 8101,
+    "last_page": 8101,
+    "file": "chunks/chunk_050.json",
+    "size_kb": 2
+  }
+]

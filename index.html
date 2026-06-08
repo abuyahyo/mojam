@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>المعاجم الثلاثة — لسان العرب · مقاييس اللغة · المفردات</title>
+<meta name="description" content="بحث موحَّد في ثلاثة معاجم: لسان العرب لابن منظور، ومقاييس اللغة لابن فارس، والمفردات للراغب الأصفهاني.">
+<meta name="theme-color" content="#7c2d12">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.png" sizes="48x48">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="المعاجم">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Scheherazade+New:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --paper:#f4ecd8;--paper-deep:#ece0c4;--ink:#2b2118;--ink-soft:#5c4a36;
+    --accent:#7c2d12;--accent-bright:#a8431a;--gold:#9a7b2e;--line:#d8c9a6;
+    --reader-scale:1;
+    --lisan:#7c2d12;--maqayis:#1d4e2c;--mufradat:#6b3e94;
+  }
+  html{font-size:clamp(15px,2.6vw,18px)}
+  body{
+    font-family:system-ui,-apple-system,"SF Arabic","Noto Sans Arabic","Segoe UI",Tahoma,sans-serif;
+    color:var(--ink);direction:rtl;text-align:right;line-height:2.0;min-height:100vh;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(circle at 18% 12%,rgba(255,255,255,.55),transparent 42%),
+      radial-gradient(circle at 85% 88%,rgba(154,123,46,.10),transparent 45%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+    background-attachment:fixed;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:0 clamp(14px,4vw,28px) 80px}
+  header.site{text-align:center;padding:clamp(24px,5vw,42px) 8px clamp(10px,2vw,18px)}
+  header.site h1{font-family:"Amiri","Scheherazade New",serif;font-weight:700;color:var(--accent);font-size:clamp(26px,7vw,42px);line-height:1.25}
+  header.site .sub{font-family:"Amiri",serif;color:var(--ink-soft);font-size:clamp(13px,3.4vw,17px);margin-top:8px;line-height:1.7}
+  .divider{height:2px;width:min(420px,80%);margin:clamp(14px,3vw,22px) auto 0;background:linear-gradient(90deg,transparent,var(--line),transparent)}
+
+  .tabs{display:flex;justify-content:center;gap:8px;margin:clamp(12px,3vw,20px) 0 0}
+  .tab{font-family:"Amiri",serif;font-size:clamp(15px,4vw,18px);background:transparent;border:1px solid var(--line);color:var(--ink-soft);border-radius:22px;padding:9px 22px;cursor:pointer;transition:background .15s,color .15s,transform .1s}
+  .tab:active{transform:scale(.96)}
+  .tab.on{background:var(--accent);color:#f7efdd;border-color:var(--accent)}
+  body[data-mode="read"] .searchbar{display:none}
+  body[data-mode="read"] .filters{display:none}
+  body[data-mode="search"] .read-picker{display:none}
+  body[data-mode="search"] .alpha{display:none}
+  body[data-mode="read"] .alpha{display:flex}
+
+  .toolbar{display:flex;justify-content:center;gap:10px;margin:clamp(16px,4vw,26px) 0 14px;flex-wrap:wrap}
+  .tool{font-family:"Amiri",serif;font-size:clamp(15px,3.6vw,18px);background:var(--paper-deep);border:1px solid var(--line);color:var(--ink);border-radius:24px;padding:8px 18px;cursor:pointer;user-select:none;transition:transform .12s,background .15s,color .15s;display:inline-flex;align-items:center;gap:6px}
+  .tool:active{transform:scale(.95)}
+  .tool.on{background:var(--accent);color:#f7efdd;border-color:var(--accent)}
+  .tool.icon{padding:8px 14px;min-width:48px;justify-content:center;font-weight:700}
+
+  .searchbar{position:relative;margin-bottom:10px}
+  .searchbar input{width:100%;font-family:"Amiri",serif;font-size:clamp(20px,5.5vw,28px);font-weight:700;color:var(--ink);background:#fbf5e6;border:1.5px solid var(--line);border-radius:16px;padding:14px 54px 14px 20px;outline:none;text-align:right;box-shadow:0 2px 10px rgba(124,45,18,.05)}
+  .searchbar input:focus{border-color:var(--accent-bright)}
+  .searchbar input::placeholder{color:#bda983;font-weight:400}
+  .searchbar .clear{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:34px;height:34px;border:none;border-radius:50%;background:var(--paper-deep);color:var(--ink-soft);font-size:18px;cursor:pointer;display:none;align-items:center;justify-content:center}
+  .searchbar .clear.show{display:flex}
+
+  .filters{display:flex;justify-content:center;gap:8px;margin:8px 0 12px;flex-wrap:wrap}
+  .filter{font-family:"Amiri",serif;font-size:14px;padding:6px 14px;border-radius:18px;background:var(--paper-deep);border:1px solid var(--line);color:var(--ink-soft);cursor:pointer;transition:.15s}
+  .filter.on{color:#fff}
+  .filter[data-src="lisan"].on{background:var(--lisan);border-color:var(--lisan)}
+  .filter[data-src="maqayis"].on{background:var(--maqayis);border-color:var(--maqayis)}
+  .filter[data-src="mufradat"].on{background:var(--mufradat);border-color:var(--mufradat)}
+
+  .read-picker{display:flex;flex-direction:column;gap:14px;margin:20px 0 12px}
+  .book-btn{font-family:"Amiri",serif;font-size:clamp(18px,5vw,22px);padding:18px 22px;border-radius:14px;border:1.5px solid var(--line);background:rgba(251,245,230,.9);cursor:pointer;text-align:right;display:flex;justify-content:space-between;align-items:center;transition:.2s}
+  .book-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(43,33,24,.08)}
+  .book-btn[data-book="lisan"]{border-right:6px solid var(--lisan)}
+  .book-btn[data-book="maqayis"]{border-right:6px solid var(--maqayis)}
+  .book-btn[data-book="mufradat"]{border-right:6px solid var(--mufradat)}
+  .book-btn .title{font-weight:700;color:var(--accent)}
+  .book-btn .meta{font-size:14px;color:var(--ink-soft);font-weight:400}
+
+  .alpha{display:none;flex-wrap:wrap;justify-content:center;gap:6px;margin:2px 0 14px}
+  .alpha .al{font-family:"Amiri",serif;font-size:18px;width:38px;height:38px;background:#fbf5e6;border:1px solid var(--line);border-radius:9px;color:var(--accent);cursor:pointer;transition:transform .12s,background .15s,color .15s}
+  .alpha .al:active{transform:scale(.9)}
+  .alpha .al.on{background:var(--accent);color:#f7efdd;border-color:var(--accent)}
+
+  .totop{position:fixed;bottom:16px;left:16px;z-index:45;width:46px;height:46px;border-radius:50%;background:var(--accent);color:#f7efdd;border:none;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 3px 12px rgba(43,33,24,.30);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;pointer-events:none;transform:translateZ(0);will-change:transform;transition:opacity .2s ease,visibility .2s ease}
+  .totop:active{transform:translateZ(0) scale(.92)}
+  .totop.show{opacity:1;visibility:visible;pointer-events:auto}
+
+  .count{text-align:center;color:var(--ink-soft);font-size:13px;min-height:18px;margin-bottom:10px;font-family:"Amiri",serif}
+
+  .group-head{font-family:"Amiri",serif;font-size:clamp(16px,4vw,19px);font-weight:700;margin:16px 0 8px;padding:8px 14px;border-radius:10px;color:#fff;display:flex;align-items:center;gap:10px}
+  .group-head[data-src="lisan"]{background:var(--lisan)}
+  .group-head[data-src="maqayis"]{background:var(--maqayis)}
+  .group-head[data-src="mufradat"]{background:var(--mufradat)}
+  .group-head .count-pill{background:rgba(255,255,255,.25);padding:2px 10px;border-radius:12px;font-size:13px;font-weight:400}
+
+  .card{background:rgba(251,245,230,.78);border:1px solid var(--line);border-radius:16px;padding:clamp(16px,4vw,24px);margin-bottom:12px;box-shadow:0 2px 12px rgba(43,33,24,.05);animation:rise .35s ease both}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .card-head{margin-bottom:10px;border-bottom:1px solid var(--line);padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .card-head .root{font-family:"Amiri","Scheherazade New",serif;font-weight:700;color:var(--accent);font-size:clamp(24px,6vw,34px)}
+  .card-head .ref{font-size:13px;color:var(--ink-soft);font-family:"Amiri",serif}
+  .body{font-size:calc(clamp(16px,4.3vw,19px)*var(--reader-scale));line-height:2.05}
+  .body .para{margin:0 0 .55em}
+  .body .para:last-child{margin-bottom:0}
+  .body mark,.card-head mark{background:#f0d878;color:inherit;border-radius:3px;padding:0 1px}
+  .lisan-page-marker{display:block;margin:14px 0 8px;color:var(--lisan);font-family:"Amiri",serif;font-size:13px;border-top:1px dashed var(--line);padding-top:8px}
+
+  .load-btn{background:var(--lisan);color:#fff;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-family:"Amiri",serif;font-size:15px;margin-top:8px}
+  .load-btn:active{transform:scale(.96)}
+  .loading{color:var(--ink-soft);font-style:italic;font-family:"Amiri",serif;font-size:14px}
+
+  .empty{text-align:center;color:var(--ink-soft);padding:56px 20px;font-family:"Amiri",serif}
+  .empty .sym{font-size:54px;color:#cbb88f;display:block;margin-bottom:18px;line-height:1}
+  .empty .msg{font-size:19px}
+
+  .install-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:50;display:flex;align-items:center;gap:10px;max-width:560px;margin:0 auto;background:var(--paper-deep);border:1px solid var(--line);border-radius:14px;padding:10px 14px;box-shadow:0 6px 22px rgba(43,33,24,.20);font-family:"Amiri",serif}
+  .install-bar[hidden]{display:none}
+  .install-bar .install-msg{flex:1;font-size:15px;color:var(--ink);line-height:1.75}
+  .install-bar .install-do{flex:none;background:var(--accent);color:#f7efdd;border:none;border-radius:20px;padding:8px 18px;font-family:"Amiri",serif;font-size:16px;cursor:pointer}
+  .install-bar .install-x{flex:none;background:transparent;border:none;color:var(--ink-soft);font-size:18px;cursor:pointer;width:30px;height:30px;line-height:1}
+</style>
+</head>
+<body data-mode="search">
+<div class="wrap">
+  <header class="site">
+    <h1>المعاجم الثلاثة</h1>
+    <div class="sub">لسان العرب لابن منظور · مقاييس اللغة لابن فارس · المفردات للراغب الأصفهاني</div>
+    <div class="divider"></div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab on" id="tabSearch">🔍 بحث</button>
+    <button class="tab" id="tabRead">📖 قراءة</button>
+  </div>
+
+  <div class="toolbar">
+    <button class="tool icon" id="incBtn" title="تكبير الخطّ">ا+</button>
+    <button class="tool icon" id="decBtn" title="تصغير الخطّ">ا−</button>
+  </div>
+
+  <div class="searchbar">
+    <input id="q" type="text" placeholder="ابحث عن جذر أو كلمة في ثلاثة معاجم…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <button class="clear" id="clear" aria-label="مسح">✕</button>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="filter on" data-src="lisan">لسان العرب</button>
+    <button class="filter on" data-src="maqayis">مقاييس اللغة</button>
+    <button class="filter on" data-src="mufradat">المفردات</button>
+  </div>
+
+  <div class="read-picker" id="readPicker">
+    <button class="book-btn" data-book="lisan">
+      <span class="title">📜 لسان العرب</span>
+      <span class="meta">ابن منظور · ١٥ مجلَّداً · ٨١٠١ صفحة</span>
+    </button>
+    <button class="book-btn" data-book="maqayis">
+      <span class="title">📘 مقاييس اللغة</span>
+      <span class="meta">ابن فارس · ٥١١٨ مادَّة</span>
+    </button>
+    <button class="book-btn" data-book="mufradat">
+      <span class="title">📕 المفردات</span>
+      <span class="meta">الراغب الأصفهاني · ١٧١٥ مادَّة</span>
+    </button>
+  </div>
+
+  <div class="alpha" id="alpha"></div>
+
+  <div class="count" id="count"></div>
+  <div id="results"></div>
+</div>
+
+<button class="totop" id="toTop" aria-label="إلى الأعلى">↑</button>
+
+<div class="install-bar" id="installBar" hidden>
+  <span class="install-msg" id="installMsg"></span>
+  <button class="install-do" id="installBtn" hidden>تثبيت</button>
+  <button class="install-x" id="installClose" aria-label="إغلاق">✕</button>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+ * Configuration
+ * ============================================================ */
+const BOOKS = {
+  lisan:    { name: "لسان العرب",    color: "#7c2d12", dataUrl: null /* lazy */ },
+  maqayis:  { name: "مقاييس اللغة",  color: "#1d4e2c", dataUrl: "data/maqayis.json" },
+  mufradat: { name: "المفردات",      color: "#6b3e94", dataUrl: "data/mufradat.json" },
+};
+const LISAN_ROOTS_URL = "data/lisan/roots.json";
+const LISAN_CHUNKS_URL = "data/lisan/chunks.json";
+
+/* ============================================================
+ * Arabic text helpers
+ * ============================================================ */
+const TASHKEEL = /[ً-ْٰـ]/g;
+const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
+const arNum = n => String(n).replace(/[0-9]/g, d => AR_DIGITS[d]);
+
+const normalize = s => (s || "")
+  .replace(TASHKEEL, "")
+  .replace(/[أإآٱ]/g, "ا")
+  .replace(/ة/g, "ه").replace(/ى/g, "ي")
+  .replace(/ؤ/g, "و").replace(/ئ/g, "ي")
+  .replace(/\s+/g, " ").trim();
+
+const stripTashkeel = s => (s || "").replace(TASHKEEL, "");
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+const HL_VAR = { "ا": "[اأإآٱ]", "ه": "[هة]", "ي": "[يى]", "و": "[وؤ]" };
+const TT = "[\\u064B-\\u0652\\u0670\\u0640]*";
+const highlightRe = nq => new RegExp("(" +
+  [...nq].map(c => (HL_VAR[c] || c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) + TT).join("") + ")", "g");
+function highlight(html, nq) {
+  if (!nq) return html;
+  const re = highlightRe(nq);
+  return html.split(/(<[^>]+>)/).map(seg => {
+    if (seg.startsWith("<")) return seg;
+    return seg.replace(re, "<mark>$1</mark>");
+  }).join("");
+}
+
+/* ============================================================
+ * State
+ * ============================================================ */
+const $ = s => document.querySelector(s);
+const qEl = $("#q"), clearEl = $("#clear"), countEl = $("#count"), resEl = $("#results");
+const filtersEl = $("#filters");
+
+let DATA = { maqayis: [], mufradat: [] };
+let LISAN_ROOTS = [];        // [[root_norm, page, chunkIdx], ...]
+let LISAN_CHUNKS = [];       // [{idx, first_page, last_page, file, size_kb}, ...]
+const LISAN_CHUNK_CACHE = {}; // chunkIdx → pages array
+let activeSources = new Set(["lisan", "maqayis", "mufradat"]);
+let scale = parseFloat(localStorage.getItem("reader_scale") || "1") || 1;
+
+/* ============================================================
+ * Data loading
+ * ============================================================ */
+async function loadJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("fetch " + url + " → " + r.status);
+  return r.json();
+}
+
+async function loadInitial() {
+  countEl.textContent = "جارٍ تحميل البيانات…";
+  try {
+    const [maqayis, mufradat, lisanRoots, lisanChunks] = await Promise.all([
+      loadJSON(BOOKS.maqayis.dataUrl),
+      loadJSON(BOOKS.mufradat.dataUrl),
+      loadJSON(LISAN_ROOTS_URL).catch(() => []),
+      loadJSON(LISAN_CHUNKS_URL).catch(() => []),
+    ]);
+    DATA.maqayis = maqayis;
+    DATA.mufradat = mufradat;
+    LISAN_ROOTS = lisanRoots;
+    LISAN_CHUNKS = lisanChunks;
+
+    for (const src of ["maqayis", "mufradat"]) {
+      DATA[src].forEach((e, i) => {
+        e._n = normalize(e.root);
+        e._t = normalize(e.text);
+        e._src = src;
+        e._idx = i;
+      });
+    }
+    countEl.textContent = "";
+  } catch (err) {
+    countEl.textContent = "";
+    resEl.innerHTML = '<div class="empty"><span class="sym">⚠</span><div class="msg">تعذّر تحميل البيانات: ' + esc(err.message) + '</div></div>';
+    throw err;
+  }
+}
+
+async function loadLisanChunk(chunkIdx) {
+  if (LISAN_CHUNK_CACHE[chunkIdx]) return LISAN_CHUNK_CACHE[chunkIdx];
+  const meta = LISAN_CHUNKS[chunkIdx];
+  if (!meta) return null;
+  const pages = await loadJSON("data/lisan/" + meta.file);
+  LISAN_CHUNK_CACHE[chunkIdx] = pages;
+  return pages;
+}
+
+function lisanPageText(pages, pageNum) {
+  return (pages.find(p => p.page === pageNum) || {}).text || "";
+}
+
+/* ============================================================
+ * Search
+ * ============================================================ */
+function searchBook(src, nq) {
+  const exact = [], starts = [], incl = [], intext = [];
+  for (const e of DATA[src]) {
+    if (e._n === nq) exact.push(e);
+    else if (e._n.startsWith(nq)) starts.push(e);
+    else if (e._n.includes(nq)) incl.push(e);
+  }
+  const seen = new Set([...exact, ...starts, ...incl]);
+  for (const e of DATA[src]) {
+    if (seen.has(e)) continue;
+    if (e._t.includes(nq)) {
+      intext.push(e);
+      if (exact.length + starts.length + incl.length + intext.length >= 40) break;
+    }
+  }
+  return exact.concat(starts, incl, intext);
+}
+
+function searchLisan(nq) {
+  // Match in roots.json index. Each entry: [root_norm, page, chunkIdx]
+  const exact = [], starts = [], incl = [];
+  for (const r of LISAN_ROOTS) {
+    if (r[0] === nq) exact.push(r);
+    else if (r[0].startsWith(nq)) starts.push(r);
+    else if (r[0].includes(nq)) incl.push(r);
+    if (exact.length + starts.length + incl.length >= 40) break;
+  }
+  return exact.concat(starts, incl);
+}
+
+/* ============================================================
+ * Rendering
+ * ============================================================ */
+function cardBody(text) {
+  return text.split(/\n\n+/).map(p =>
+    '<p class="para">' + esc(p) + '</p>'
+  ).join("");
+}
+
+function cardHTML_dict(e, nq) {
+  return '<article class="card" data-src="' + e._src + '" data-idx="' + e._idx + '">' +
+    '<div class="card-head"><h2 class="root">' + highlight(esc(e.root), nq) + '</h2>' +
+    '<span class="ref">' + BOOKS[e._src].name + '</span></div>' +
+    '<div class="body">' + highlight(cardBody(e.text), nq) + '</div></article>';
+}
+
+function cardHTML_lisanResult(rootEntry, nq) {
+  const [root, page, chunkIdx] = rootEntry;
+  return '<article class="card" data-src="lisan" data-root="' + esc(root) + '" data-page="' + page + '" data-chunk="' + chunkIdx + '">' +
+    '<div class="card-head"><h2 class="root">' + highlight(esc(root), nq) + '</h2>' +
+    '<span class="ref">لسان العرب · صفحة ' + arNum(page) + '</span></div>' +
+    '<div class="body"><button class="load-btn" data-action="load-lisan">عرض النصّ</button></div></article>';
+}
+
+async function expandLisanCard(card) {
+  const chunkIdx = parseInt(card.dataset.chunk, 10);
+  const page = parseInt(card.dataset.page, 10);
+  const bodyEl = card.querySelector(".body");
+  bodyEl.innerHTML = '<span class="loading">جارٍ تحميل الصفحة…</span>';
+  try {
+    const pages = await loadLisanChunk(chunkIdx);
+    // show current page + next 2 pages for context
+    const startIdx = pages.findIndex(p => p.page === page);
+    const slice = pages.slice(startIdx, startIdx + 3);
+    bodyEl.innerHTML = slice.map(p =>
+      '<div class="lisan-page-marker">— صفحة ' + arNum(p.page) + ' —</div>' +
+      '<p class="para">' + esc(p.text || "") + '</p>'
+    ).join("");
+  } catch (err) {
+    bodyEl.innerHTML = '<span class="loading">تعذّر التحميل</span>';
+  }
+}
+
+function doSearch(q) {
+  clearEl.classList.toggle("show", q.length > 0);
+  const nq = normalize(q);
+  if (!nq) {
+    resEl.innerHTML = "";
+    countEl.textContent = "";
+    return;
+  }
+
+  const groups = {};
+  let total = 0;
+  if (activeSources.has("lisan")) {
+    const res = searchLisan(nq).slice(0, 40);
+    if (res.length) { groups.lisan = res; total += res.length; }
+  }
+  if (activeSources.has("maqayis")) {
+    const res = searchBook("maqayis", nq).slice(0, 40);
+    if (res.length) { groups.maqayis = res; total += res.length; }
+  }
+  if (activeSources.has("mufradat")) {
+    const res = searchBook("mufradat", nq).slice(0, 40);
+    if (res.length) { groups.mufradat = res; total += res.length; }
+  }
+
+  if (!total) {
+    resEl.innerHTML = '<div class="empty"><span class="sym">∅</span><div class="msg">لا توجد نتائج لـ «' + esc(q) + '»</div></div>';
+    countEl.textContent = "";
+    return;
+  }
+  countEl.textContent = arNum(total) + " نتيجة";
+
+  let html = "";
+  // ordered: maqayis, mufradat first (richer entries), lisan last (many hits)
+  for (const src of ["maqayis", "mufradat", "lisan"]) {
+    if (!groups[src]) continue;
+    const items = groups[src];
+    html += '<div class="group-head" data-src="' + src + '">' + BOOKS[src].name +
+            ' <span class="count-pill">' + arNum(items.length) + '</span></div>';
+    if (src === "lisan") {
+      html += items.map(r => cardHTML_lisanResult(r, nq)).join("");
+    } else {
+      html += items.map(e => cardHTML_dict(e, nq)).join("");
+    }
+  }
+  resEl.innerHTML = html;
+}
+
+/* ============================================================
+ * Sequential reader (book viewer)
+ * ============================================================ */
+let readingBook = null;
+let readCursor = 0;
+const CHUNK = 25;
+const LETTERS = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي".split("");
+const alphaEl = $("#alpha");
+alphaEl.innerHTML = LETTERS.map(L => '<button class="al" data-l="' + L + '">' + L + "</button>").join("");
+
+function markAlpha(letter) {
+  [...alphaEl.children].forEach(b => b.classList.toggle("on", b.dataset.l === letter));
+}
+
+function appendDictChunk(src) {
+  const end = Math.min(DATA[src].length, readCursor + CHUNK);
+  const html = DATA[src].slice(readCursor, end).map(e => cardHTML_dict(e, "")).join("");
+  resEl.insertAdjacentHTML("beforeend", html);
+  readCursor = end;
+}
+
+let lisanReadCursor = 1;
+async function appendLisanPages() {
+  const totalPages = LISAN_CHUNKS.length ? LISAN_CHUNKS[LISAN_CHUNKS.length-1].last_page : 8101;
+  if (lisanReadCursor > totalPages) return;
+  // load chunk containing current page
+  const chunk = LISAN_CHUNKS.find(c => lisanReadCursor >= c.first_page && lisanReadCursor <= c.last_page);
+  if (!chunk) return;
+  const pages = await loadLisanChunk(chunk.idx);
+  const sliceEnd = Math.min(lisanReadCursor + 5, chunk.last_page + 1);
+  const slice = pages.filter(p => p.page >= lisanReadCursor && p.page < sliceEnd);
+  const html = slice.map(p =>
+    '<article class="card" data-src="lisan"><div class="card-head">' +
+    '<h2 class="root">صفحة ' + arNum(p.page) + '</h2>' +
+    '<span class="ref">لسان العرب</span></div>' +
+    '<div class="body"><p class="para">' + esc(p.text || "") + '</p></div></article>'
+  ).join("");
+  resEl.insertAdjacentHTML("beforeend", html);
+  lisanReadCursor = sliceEnd;
+}
+
+function startReading(book) {
+  readingBook = book;
+  resEl.innerHTML = "";
+  countEl.textContent = "قراءة: " + BOOKS[book].name;
+  if (book === "lisan") {
+    lisanReadCursor = 1;
+    appendLisanPages();
+  } else {
+    readCursor = 0;
+    appendDictChunk(book);
+  }
+}
+
+function firstIndexOfLetter(src, L) {
+  const Ln = normalize(L);
+  return DATA[src].findIndex(e => e._n.startsWith(Ln));
+}
+
+alphaEl.addEventListener("click", e => {
+  const b = e.target.closest("button.al"); if (!b) return;
+  const L = b.dataset.l;
+  markAlpha(L);
+  if (readingBook && readingBook !== "lisan") {
+    const idx = firstIndexOfLetter(readingBook, L);
+    if (idx >= 0) {
+      readCursor = idx;
+      resEl.innerHTML = "";
+      appendDictChunk(readingBook);
+      window.scrollTo({ top: 0 });
+    }
+  }
+});
+
+/* ============================================================
+ * UI events
+ * ============================================================ */
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const setHash = q => history.replaceState(null, "", q ? "#q=" + encodeURIComponent(q) : "#");
+const onInput = debounce(() => { const q = qEl.value; setHash(q.trim()); doSearch(q); }, 200);
+
+qEl.addEventListener("input", onInput);
+qEl.addEventListener("keydown", e => {
+  if (e.key === "Escape") { qEl.value = ""; setHash(""); doSearch(""); qEl.focus(); }
+});
+clearEl.addEventListener("click", () => { qEl.value = ""; setHash(""); doSearch(""); qEl.focus(); });
+
+filtersEl.addEventListener("click", e => {
+  const b = e.target.closest(".filter"); if (!b) return;
+  const src = b.dataset.src;
+  if (activeSources.has(src)) {
+    if (activeSources.size > 1) {
+      activeSources.delete(src);
+      b.classList.remove("on");
+    }
+  } else {
+    activeSources.add(src);
+    b.classList.add("on");
+  }
+  doSearch(qEl.value);
+});
+
+resEl.addEventListener("click", e => {
+  const lb = e.target.closest("button.load-btn");
+  if (lb) {
+    const card = lb.closest(".card");
+    if (card) expandLisanCard(card);
+    return;
+  }
+});
+
+$("#readPicker").addEventListener("click", e => {
+  const b = e.target.closest(".book-btn"); if (!b) return;
+  startReading(b.dataset.book);
+  window.scrollTo({ top: 0 });
+});
+
+const tabSearch = $("#tabSearch"), tabRead = $("#tabRead");
+function uiMode(m) {
+  document.body.dataset.mode = m;
+  tabSearch.classList.toggle("on", m === "search");
+  tabRead.classList.toggle("on", m === "read");
+  if (m === "search") {
+    readingBook = null;
+    doSearch(qEl.value);
+  } else {
+    resEl.innerHTML = "";
+    countEl.textContent = "اختر معجماً للقراءة المتسلسلة";
+    readingBook = null;
+  }
+}
+tabSearch.addEventListener("click", () => uiMode("search"));
+tabRead.addEventListener("click", () => uiMode("read"));
+
+const toTop = $("#toTop");
+toTop.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+addEventListener("scroll", () => {
+  toTop.classList.toggle("show", scrollY > 600);
+  if (!readingBook) return;
+  if (innerHeight + scrollY >= document.body.offsetHeight - 900) {
+    if (readingBook === "lisan") appendLisanPages();
+    else if (readCursor < DATA[readingBook].length) appendDictChunk(readingBook);
+  }
+});
+
+/* ============================================================
+ * Font scale
+ * ============================================================ */
+const applyScale = () => document.documentElement.style.setProperty("--reader-scale", scale);
+$("#incBtn").addEventListener("click", () => { scale = Math.min(scale + 0.1, 1.8); localStorage.setItem("reader_scale", scale.toFixed(2)); applyScale(); });
+$("#decBtn").addEventListener("click", () => { scale = Math.max(scale - 0.1, 0.8); localStorage.setItem("reader_scale", scale.toFixed(2)); applyScale(); });
+applyScale();
+
+/* ============================================================
+ * Boot
+ * ============================================================ */
+loadInitial().then(() => {
+  const qm = location.hash.match(/q=([^&]*)/);
+  if (qm) {
+    const q = decodeURIComponent(qm[1]);
+    qEl.value = q;
+    doSearch(q);
+  }
+});
+
+/* ============================================================
+ * Service worker
+ * ============================================================ */
+if ("serviceWorker" in navigator) {
+  addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+    let reloading = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloading) return; reloading = true; location.reload();
+    });
+  });
+}
+
+/* ============================================================
+ * Install bar (Arabic prompt)
+ * ============================================================ */
+(function () {
+  const bar = document.getElementById("installBar");
+  const msg = document.getElementById("installMsg");
+  const btn = document.getElementById("installBtn");
+  const closeBtn = document.getElementById("installClose");
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  if (standalone || localStorage.getItem("install_dismissed") === "1") return;
+  let deferred = null;
+  const show = (text, withBtn) => { msg.textContent = text; btn.hidden = !withBtn; bar.hidden = false; };
+  const dismiss = () => { bar.hidden = true; localStorage.setItem("install_dismissed", "1"); };
+  closeBtn.addEventListener("click", dismiss);
+  window.addEventListener("beforeinstallprompt", e => {
+    e.preventDefault(); deferred = e;
+    show("ثبّت «المعاجم الثلاثة» على شاشتك الرئيسية للوصول السريع.", true);
+  });
+  btn.addEventListener("click", () => {
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.finally(() => { deferred = null; dismiss(); });
+  });
+  window.addEventListener("appinstalled", dismiss);
+  if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+    setTimeout(() => {
+      if (bar.hidden) show("لتثبيت التطبيق: اضغط زرّ المشاركة ⬆︎ ثمّ «أضِف إلى الشاشة الرئيسية».", false);
+    }, 1500);
+  }
+})();
+</script>
+</body>
+</html>
