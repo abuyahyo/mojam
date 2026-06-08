@@ -169,7 +169,8 @@ const BOOKS = {
   lisan:    { name: "لسان العرب",    color: "#7c2d12", dataUrl: null /* lazy */ },
   maqayis:  { name: "مقاييس اللغة",  color: "#1d4e2c", dataUrl: "data/maqayis.json" },
   mufradat: { name: "المفردات",      color: "#6b3e94", dataUrl: "data/mufradat.json" },
-  bushro:   { name: "بشرى",          color: "#0e6b6b", dataUrl: "data/bushro.json", optional: true },
+  bushro:    { name: "بشرى",         color: "#0e6b6b", dataUrl: "data/bushro.json",    optional: true },
+  bushro_uz: { name: "بشرى",         color: "#0e6b6b", dataUrl: "data/bushro_uz.json", optional: true },
 };
 const LISAN_ROOTS_URL = "data/lisan/roots.json";
 const LISAN_CHUNKS_URL = "data/lisan/chunks.json";
@@ -182,11 +183,16 @@ const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 const arNum = n => String(n).replace(/[0-9]/g, d => AR_DIGITS[d]);
 
 const normalize = s => (s || "")
+  .toLowerCase()
   .replace(TASHKEEL, "")
   .replace(/[أإآٱ]/g, "ا")
   .replace(/ة/g, "ه").replace(/ى/g, "ي")
   .replace(/ؤ/g, "و").replace(/ئ/g, "ي")
   .replace(/\s+/g, " ").trim();
+
+const LATIN_RE = /[a-z]/i;
+const ARABIC_RE = /[ء-ي]/;
+const isUzbekQuery = q => LATIN_RE.test(q) && !ARABIC_RE.test(q);
 
 const stripTashkeel = s => (s || "").replace(TASHKEEL, "");
 const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -207,7 +213,7 @@ const $ = s => document.querySelector(s);
 const qEl = $("#q"), clearEl = $("#clear"), countEl = $("#count"), resEl = $("#results");
 const filtersEl = $("#filters");
 
-let DATA = { maqayis: [], mufradat: [], bushro: [] };
+let DATA = { maqayis: [], mufradat: [], bushro: [], bushro_uz: [] };
 let LISAN_ROOTS = [];        // [[root_norm, chunkIdx, entryIdx], ...] reading order
 let LISAN_CHUNKS = [];       // [{idx, file, start, count, size_kb}, ...]
 const LISAN_CHUNK_CACHE = {}; // chunkIdx → entries array [{root, text}, ...]
@@ -246,12 +252,13 @@ function addBushroUI() {
 async function loadInitial() {
   countEl.textContent = "جارٍ تحميل البيانات…";
   try {
-    const [maqayis, mufradat, lisanRoots, lisanChunks, bushro] = await Promise.all([
+    const [maqayis, mufradat, lisanRoots, lisanChunks, bushro, bushroUz] = await Promise.all([
       loadJSON(BOOKS.maqayis.dataUrl),
       loadJSON(BOOKS.mufradat.dataUrl),
       loadJSON(LISAN_ROOTS_URL).catch(() => []),
       loadJSON(LISAN_CHUNKS_URL).catch(() => []),
-      loadJSON(BOOKS.bushro.dataUrl).catch(() => null), // optional / local-only
+      loadJSON(BOOKS.bushro.dataUrl).catch(() => null),    // optional / local-only
+      loadJSON(BOOKS.bushro_uz.dataUrl).catch(() => null), // optional / local-only
     ]);
     DATA.maqayis = maqayis;
     DATA.mufradat = mufradat;
@@ -263,14 +270,17 @@ async function loadInitial() {
       activeSources.add("bushro");
       addBushroUI();
     }
+    if (bushroUz && bushroUz.length) {
+      DATA.bushro_uz = bushroUz;
+    }
 
-    for (const src of ["maqayis", "mufradat", "bushro"]) {
+    for (const src of ["maqayis", "mufradat", "bushro", "bushro_uz"]) {
       DATA[src].forEach((e, i) => {
         e._n = normalize(e.root);
         e._t = normalize(e.text);
-        e._src = src;
+        e._src = src === "bushro_uz" ? "bushro" : src;
         e._idx = i;
-        if (e._n) ROOTSET.add(e._n);
+        if (e._n && src !== "bushro_uz") ROOTSET.add(e._n);
       });
     }
     for (const r of LISAN_ROOTS) if (r[0]) ROOTSET.add(r[0]);
@@ -459,6 +469,22 @@ function doSearch(q) {
   if (nq.length < 2) {
     resEl.innerHTML = '<div class="empty"><span class="sym">…</span><div class="msg">اكتب حرفين على الأقل</div></div>';
     countEl.textContent = "";
+    return;
+  }
+
+  // Latin-only query → Uzbek→Arabic side of Bushro (other books are Arabic only)
+  if (isUzbekQuery(nq) && DATA.bushro_uz.length) {
+    const res = searchBookTitle("bushro_uz", nq).slice(0, 60);
+    if (!res.length) {
+      resEl.innerHTML = '<div class="empty"><span class="sym">∅</span><div class="msg">لا توجد نتائج لـ «' + esc(q) + '»</div></div>';
+      countEl.textContent = "";
+      return;
+    }
+    countEl.textContent = arNum(res.length) + " نتيجة (أوزبكي ← عربي)";
+    resEl.innerHTML =
+      '<div class="group-head" data-src="bushro">' + BOOKS.bushro.name + ' (أوزبكي ← عربي)' +
+      ' <span class="count-pill">' + arNum(res.length) + '</span></div>' +
+      res.map(e => cardHTML_dict(e, nq)).join("");
     return;
   }
 

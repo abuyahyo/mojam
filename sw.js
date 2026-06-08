@@ -13,7 +13,11 @@
  *   - Other data JSON    : cache-first    — invalidated by VERSION bump
  *   - Icons / manifest   : SWR            — refresh quietly in background
  */
+<<<<<<< HEAD
 const VERSION = "v20260608194338";
+=======
+const VERSION = "v20260608200317";
+>>>>>>> ee258d5 (Bushro reverse search: Uzbek → Arabic)
 const SHELL_CACHE = "mojam-shell-" + VERSION;
 const DATA_CACHE  = "mojam-data-"  + VERSION;
 const LISAN_CACHE = "mojam-lisan-" + VERSION;
