@@ -405,7 +405,6 @@ function searchLisan(nq) {
  * ============================================================ */
 /* Hadith styling: «...» preceded by a context word (في الحديث / حديث / الخبر)
  * gets red emphasis. Optional tashkeel between letters of the context word. */
-const TT = "[\\u064B-\\u0652\\u0670\\u0640]*";
 const tol = w => [...w].join(TT);
 const HAD_RE = new RegExp("((?:في\\s+)?(?:" + [tol("الحديث"), tol("حديث"), tol("الخبر")].join("|") + ")[^«»]{0,12})«([^»]+)»", "g");
 const styleHadith = s => s.replace(HAD_RE, (m, a, c) => a + '<span class="hadith">«' + c + '»</span>');
