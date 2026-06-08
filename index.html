@@ -145,6 +145,16 @@
   .install-bar .install-msg{flex:1;font-size:15px;color:var(--ink);line-height:1.75}
   .install-bar .install-do{flex:none;background:var(--accent);color:#f7efdd;border:none;border-radius:20px;padding:8px 18px;font-family:"Amiri",serif;font-size:16px;cursor:pointer}
   .install-bar .install-x{flex:none;background:transparent;border:none;color:var(--ink-soft);font-size:18px;cursor:pointer;width:30px;height:30px;line-height:1}
+
+  /* Offline pre-warm progress */
+  .prewarm-bar{display:flex;align-items:center;gap:10px;background:var(--paper-deep);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin:0 0 14px;font-family:"Amiri",serif}
+  .prewarm-bar[hidden]{display:none}
+  .prewarm-bar .pw-msg{flex:1;font-size:14px;color:var(--ink);line-height:1.6}
+  .prewarm-bar .pw-bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:4px}
+  .prewarm-bar .pw-fill{height:100%;width:0;background:var(--accent);transition:width .25s}
+  .prewarm-bar .pw-action{flex:none;background:var(--accent);color:#f7efdd;border:none;border-radius:18px;padding:6px 14px;font-family:"Amiri",serif;font-size:14px;cursor:pointer}
+  .prewarm-bar .pw-action:disabled{opacity:.6;cursor:default}
+  .prewarm-bar .pw-x{flex:none;background:transparent;border:none;color:var(--ink-soft);font-size:18px;cursor:pointer;width:28px;height:28px;line-height:1}
 </style>
 </head>
 <body data-mode="search">
@@ -194,6 +204,15 @@
 
   <div class="alpha-label">انتقل إلى حرف</div>
   <div class="alpha" id="alpha"></div>
+
+  <div class="prewarm-bar" id="prewarmBar" hidden>
+    <div style="flex:1">
+      <div class="pw-msg" id="prewarmMsg"></div>
+      <div class="pw-bar"><div class="pw-fill" id="prewarmFill"></div></div>
+    </div>
+    <button class="pw-action" id="prewarmAction">حفظ ٤٧ م.ب</button>
+    <button class="pw-x" id="prewarmClose" aria-label="إغلاق">✕</button>
+  </div>
 
   <div class="count" id="count"></div>
   <div id="results"></div>
@@ -841,6 +860,9 @@ loadInitial().then(() => {
 if ("serviceWorker" in navigator) {
   addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
+    // Reload only when an existing controlled tab gets a new SW — never on
+    // the very first install (no prior controller → no implicit reload).
+    if (!navigator.serviceWorker.controller) return;
     let reloading = false;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (reloading) return; reloading = true; location.reload();

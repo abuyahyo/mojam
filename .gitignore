@@ -5,4 +5,10 @@ debug_roots.py
 inspect_data.py
 inspect_html.py
 test_extract.py
+test_new_features.py
+test_search.py
+test_search2.py
+test_search3.py
+test_styles.py
+build_lisan_v2.py
 __pycache__/

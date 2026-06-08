@@ -1,0 +1,16 @@
+#!/bin/sh
+# Bump sw.js VERSION on every commit so PWA users automatically receive
+# updates: new SW installs, old caches are dropped, controllerchange in
+# index.html triggers a one-time reload.
+#
+# Activated for this repo via: git config core.hooksPath .githooks
+sw="sw.js"
+if [ -f "$sw" ] && grep -q '^const VERSION = ' "$sw"; then
+  ts=$(date -u +%Y%m%d%H%M%S)
+  new="const VERSION = \"v$ts\";"
+  awk -v new="$new" '
+    /^const VERSION = / { print new; next }
+    { print }
+  ' "$sw" > "$sw.tmp" && mv "$sw.tmp" "$sw"
+  git add "$sw"
+fi
