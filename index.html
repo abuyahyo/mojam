@@ -565,7 +565,22 @@ const styleBushroNum = s => s.replace(BUSHRO_SENSE_NUM, '<span class="sense-num"
 const MORPH_LABELS = { "ko'p.": "جمع", "ko'p": "جمع", "ikk.": "مثنى", "ikk": "مثنى", "muan.": "مؤنث", "muan": "مؤنث", "qar.": "انظر", "qar": "انظر" };
 const MORPH_ROMAN = /^(?:I{1,3}|IV|VI{0,3}|IX|X)$/;
 const MORPH_HEAD = /^(?:\d{1,2}-)?(?:(?:I{1,3}|IV|VI{0,3}|IX|X)-|ko'p\.?-|ikk\.?-|muan\.?-|qar\.?-)/;
-function formatBushroMorph(seg) {
+const HARAKAT = "ًٌٍَُِّْ";
+/* The source often records the sound feminine plural as a bare ending «اتٌ»
+ * with the stem dropped (إِدَارَةٌ → «اتٌ»). Rebuild the full word from the
+ * headword so it reads as a real plural (غَيْرٌ → «غَيْراتٌ»): strip the head's
+ * final tanwīn, then تاء مربوطة → drop, ألف مقصورة → ي, «اء» → «او», and append
+ * the recorded ending. */
+function bushroSoundPlural(head, ending) {
+  if (!head) return null;
+  let h = head.trim().replace(new RegExp("[" + HARAKAT + "]+$"), "");
+  if (/ة$/.test(h)) h = h.replace(/ة$/, "");
+  else if (/ى$/.test(h)) h = h.replace(new RegExp("[" + HARAKAT + "]*ى$"), "ي");
+  else if (/اء$/.test(h)) h = h.replace(/ء$/, "و");
+  h = h.replace(new RegExp("[" + HARAKAT + "]+$"), "");
+  return /[؀-ۿ]/.test(h) ? h + ending : null;
+}
+function formatBushroMorph(seg, head) {
   const tokens = seg.split("-").map(t => t.trim()).filter(Boolean);
   if (!tokens.length) return null;
   const groups = [];
@@ -578,11 +593,12 @@ function formatBushroMorph(seg) {
     const tok = tokens[i], lab = MORPH_LABELS[tok];
     if (lab) { if (!cur || cur.label !== lab) { cur = { label: lab, values: [] }; groups.push(cur); } started = true; }
     else if (/[؀-ۿ]/.test(tok) && cur) {
-      // The source often records the sound feminine plural as a bare ending «اتٌ»
-      // (the stem dropped). On its own it reads like a meaningless word, so when
-      // the value under «جمع» is just that ending, mark it as a suffix with a
-      // leading tatweel («ـاتٌ») — the conventional «plural in -āt» notation.
-      cur.values.push(esc(cur.label === "جمع" && /^اتٌ?$/.test(tok) ? "ـ" + tok : tok));
+      // A bare «اتٌ» plural ending is rebuilt into the full word from the
+      // headword (إِدَارَةٌ → «إِدَارَاتٌ»); if the head is missing, fall back to a
+      // tatweel-marked suffix («ـاتٌ») so it still reads as an ending, not a word.
+      const v = (cur.label === "جمع" && /^اتٌ?$/.test(tok))
+        ? (bushroSoundPlural(head, tok) || "ـ" + tok) : tok;
+      cur.values.push(esc(v));
     }
     // else: vowel hints / latin scraps are dropped
   }
@@ -619,7 +635,7 @@ function expandBushroAbbr(t) {
   return t;
 }
 
-function cardBody(text, own, src) {
+function cardBody(text, own, src, head) {
   const bushro = src === "bushro";
   if (bushro) text = markBushroSenses(text.replace(BUSHRO_FORM_TAIL, ""));
   // Maqayis/Lisan brackets poetry and citations with «*»; the markers carry no
@@ -707,7 +723,7 @@ function cardBody(text, own, src) {
   let mainHtml = "", morphHtml = "";
   for (const { text: p, ayah, hadith, gloss, lead } of flowed) {
     if (bushro && MORPH_HEAD.test(p)) {
-      const fmt = formatBushroMorph(p);
+      const fmt = formatBushroMorph(p, head);
       morphHtml += '<p class="para morph">' + (fmt || esc(p)) + '</p>';
       continue;
     }
@@ -747,7 +763,7 @@ function cardHTML_dict(e, nq, extraClass) {
   const cls = "card" + (extraClass ? " " + extraClass : "");
   return '<article class="' + cls + '" data-src="' + e._src + '" data-idx="' + e._idx + '">' +
     '<div class="card-head"><h2 class="root">' + highlight(esc(e.root), nq) + '</h2></div>' +
-    '<div class="body">' + highlight(cardBody(e.text, e._n, e._src), nq) + '</div></article>';
+    '<div class="body">' + highlight(cardBody(e.text, e._n, e._src, e.root), nq) + '</div></article>';
 }
 
 function cardHTML_lisanResult(rootEntry, nq) {
