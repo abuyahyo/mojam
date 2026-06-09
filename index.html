@@ -100,6 +100,11 @@
   .card.uz-card{direction:ltr;text-align:left}
   .card.uz-card .body{text-align:left}
 
+  /* AR → UZ card: Arabic headword stays on the right, but the Uzbek (Latin)
+     translation body must read left-to-right — otherwise the numbered senses
+     (1) … 2) …) get bidi-reordered and the text leans to the right. */
+  .card.aruz-card .body{direction:ltr;text-align:left}
+
   .loading{color:var(--ink-soft);font-style:italic;font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif;font-size:14px}
 
   .loading-screen{text-align:center;color:var(--ink-soft);padding:56px 20px;font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif;font-size:16px}
@@ -708,7 +713,9 @@ function renderByBook(groups, nq) {
     if (src === "lisan") {
       html += items.map(r => cardHTML_lisanResult(r, nq)).join("");
     } else {
-      html += items.map(e => cardHTML_dict(e, nq)).join("");
+      // Bushro here is the Arabic→Uzbek direction: keep the Latin body LTR.
+      const extra = src === "bushro" ? "aruz-card" : "";
+      html += items.map(e => cardHTML_dict(e, nq, extra)).join("");
     }
   }
   return html;
