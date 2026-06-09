@@ -91,6 +91,7 @@
   .body .ayah{color:#2c6e49;font-weight:600;font-family:-apple-system,system-ui,"SF Arabic","Geeza Pro","SF Pro Text",sans-serif;font-feature-settings:"liga" 1}
   .body .ayah-ref{color:var(--gold);font-size:.82em;font-style:normal}
   .body .hadith{color:var(--accent-bright);font-weight:600}
+  .body .sense{color:#7c2d12;font-weight:700}
   .body a.xref{color:var(--accent-bright);cursor:pointer;border-bottom:1px dashed var(--accent-bright);text-decoration:none}
   .body .para.footnote{font-size:.86em;color:var(--ink-soft);background:rgba(216,201,166,.20);border-right:3px solid var(--gold);padding:7px 12px;margin:8px 0;border-radius:6px;line-height:1.75}
   .body .fnref{display:inline-block;font-size:.72em;color:var(--ink-soft);vertical-align:super;line-height:1;margin:0 .15em;opacity:.7}
@@ -433,6 +434,52 @@ function styleQuran(s) {
   return s.replace(/\[([^\[\]]*[0-9٠-٩][^\[\]]*)\]/g, '<span class="ayah-ref">[$1]</span>');
 }
 
+/* ------------------------------------------------------------------
+ * Sense markers (ما يدلّ على المعنى) — Maqayis-style articles introduce each
+ * root meaning with a fixed cue: «فالأول», «والأصل الثاني», «وأمّا الثالث»,
+ * or a bare ordinal «والآخر / والثاني …» right after a full stop. We tag each
+ * cue with <span class="sense"> (dark red, bold) and force it onto its own
+ * paragraph so a reader can scan the 1st / 2nd / 3rd meaning at a glance.
+ *
+ * Quran ﴿…﴾ are NOT sense markers — they stay green via styleQuran and are
+ * untouched here (our patterns never match braces/guillemets).
+ *
+ * All patterns are diacritic-tolerant: optional tashkeel (U+064B–U+065F),
+ * dagger alif (U+0670) and tatweel (U+0640) may sit between any two letters,
+ * so both الأوّل (vocalised) and الأول (bare) match. A trailing Arabic-letter
+ * lookahead enforces a word boundary so we never match inside a longer word.
+ * ------------------------------------------------------------------ */
+const SENSE_D = "[\\u064B-\\u065F\\u0670\\u0640]*";
+const senseWord = w => [...w].join(SENSE_D) + SENSE_D;
+const SENSE_ORDINALS = [
+  "الآخر", "الأخرى", "الثاني", "الثانية", "الثالث", "الثالثة",
+  "الرابع", "الرابعة", "الخامس", "الخامسة", "السادس", "السادسة",
+];
+const SENSE_NO_LETTER = "(?![ء-يٱ])";           // word boundary: no Arabic letter follows
+const _ord     = "(?:" + SENSE_ORDINALS.map(senseWord).join("|") + ")";
+const _cat1    = "(?:" + ["فالأولى", "فالأول"].map(senseWord).join("|") + ")";
+const _cat2    = senseWord("والأصل") + "\\s+" + _ord;
+const _cat3    = senseWord("وأما") + "\\s+(?:" + senseWord("الأصل") + "\\s+)?" + _ord;
+const _bareOrd = "(?:" + SENSE_ORDINALS.map(o => senseWord("و" + o)).join("|") + ")";
+const SENSE_PHRASE      = "(?:" + [_cat1, _cat2, _cat3].join("|") + ")";
+const SENSE_MARKER_BODY = "(?:" + SENSE_PHRASE + "|" + _bareOrd + ")";
+
+// Break phase (raw text): drop a paragraph break before every cue so each
+// meaning starts fresh. Phrase cues (و/ف…) break after any whitespace/start;
+// bare ordinals only after a sentence end (. ؟ !) to avoid mid-sentence «and the other».
+const SENSE_PHRASE_RE = new RegExp("(?:^|\\s)(" + SENSE_PHRASE + ")" + SENSE_NO_LETTER, "g");
+const SENSE_BARE_RE   = new RegExp("([.؟!]\\s*)(" + _bareOrd + ")" + SENSE_NO_LETTER, "g");
+function markSenses(text) {
+  text = text.replace(SENSE_PHRASE_RE, (_m, mk) => "\n\n" + mk);
+  text = text.replace(SENSE_BARE_RE, (_m, lead, mk) => lead + "\n\n" + mk);
+  return text;
+}
+
+// Wrap phase (escaped paragraph): after the break each cue sits at the start
+// of its paragraph, so wrap the leading cue in the sense span.
+const SENSE_WRAP_RE = new RegExp("^(" + SENSE_MARKER_BODY + ")" + SENSE_NO_LETTER);
+const styleSenses = s => s.replace(SENSE_WRAP_RE, '<span class="sense">$1</span>');
+
 /* Editor's footnotes (محقّق notes) appear inline between sentences:
  *   "main text...\n— (١) فى اللسان (صحب): ...\nmain text continues..."
  * Each "— (N) ..." line is rendered as a muted inline-styled paragraph so
@@ -445,6 +492,7 @@ function styleParagraph(p, own) {
   s = styleHadith(s);
   s = linkifyXref(s, own || "");
   s = styleQuran(s);
+  s = styleSenses(s);
   return s;
 }
 
@@ -459,7 +507,7 @@ const FN_REF_ONLY = /^\s*[«‹]\s*[0-9٠-٩]+\s*[»›]\s*$/;
 const STRAY_PUNCT_ONLY = /^\s*[.,،؛:؟!]+\s*$/;
 
 function cardBody(text, own) {
-  const rawParas = text.split(/\n+/);
+  const rawParas = markSenses(text).split(/\n+/);
   const paras = [];
   for (const p of rawParas) {
     if (!p.trim()) continue;
