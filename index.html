@@ -677,15 +677,17 @@ function cardBody(text, own, src, head) {
         while (/\[/.test(txt) && !/\]/.test(txt) && j + 1 < paras.length) { j++; txt += " " + paras[j].text; }
       // Keep the «وفي التنزيل:» / «وفي الحديث:» intro on the same line as its text.
       const block = { text: txt, refs: paras[j].refs, lead: paras[i].text.trim() };
-      if (hadith) {
-        block.hadith = /[ء-ي]/.test(txt);
-      } else {
-        block.ayah = /[ء-ي]/.test(txt);
-        // A «؛ أي …» / «، …» gloss right after the آية explains it — keep it on
-        // the same line instead of orphaning it under the green verse.
-        if (block.ayah && j + 1 < paras.length && /^\s*(?:[؛،]|أَ?يْ?\s|أي\s)/.test(paras[j + 1].text)) {
-          block.gloss = paras[j + 1].text.trim();
-          j++;
+      if (hadith) block.hadith = /[ء-ي]/.test(txt);
+      else block.ayah = /[ء-ي]/.test(txt);
+      // A «؛ أي …» / «، …» gloss right after the آية / حديث explains it — keep it
+      // on the same line instead of orphaning it under the coloured text (skipping
+      // a محقّق footnote that may sit between the text and its gloss).
+      if (block.ayah || block.hadith) {
+        let g = j + 1;
+        while (g < paras.length && FOOTNOTE_HEAD.test(paras[g].text)) g++;
+        if (g < paras.length && /^\s*(?:[؛،]|أَ?يْ?\s|أي\s)/.test(paras[g].text)) {
+          block.gloss = paras[g].text.trim();
+          j = g;
         }
       }
       blocks.push(block);
@@ -742,8 +744,11 @@ function cardBody(text, own, src, head) {
       const m = core.match(/\sأَ?يْ?(?=\s)/);
       if (m) { gl = core.slice(m.index + 1).trim(); core = core.slice(0, m.index); }
       core = core.replace(/^[«»\[\s،؛]+|[«»\]\s.،؛]+$/g, "");
-      mainHtml += '<p class="para">' + head + '<span class="hadith">«' + esc(core) + '»</span>'
-                + (gl ? " " + esc(gl) : "") + '</p>';
+      // Trailing gloss(es): the peeled intra-paragraph «أَيْ …» and an absorbed
+      // «، أي …» from the next paragraph, both kept black on the same line.
+      let tail = gl ? " " + esc(gl) : "";
+      if (gloss) tail += (/^[؛،]/.test(gloss) ? "" : " ") + esc(gloss);
+      mainHtml += '<p class="para">' + head + '<span class="hadith">«' + esc(core) + '»</span>' + tail + '</p>';
       continue;
     }
     if (FOOTNOTE_HEAD.test(p)) continue;            // drop editor footnotes
