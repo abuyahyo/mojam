@@ -601,6 +601,9 @@ function expandBushroAbbr(t) {
 function cardBody(text, own, src) {
   const bushro = src === "bushro";
   if (bushro) text = markBushroSenses(text.replace(BUSHRO_FORM_TAIL, ""));
+  // Maqayis/Lisan brackets poetry and citations with «*»; the markers carry no
+  // reading value, so drop them (Bushro's «*» is its idiom marker, handled above).
+  else text = text.replace(/[ \t]*\*[ \t]*/g, " ");
   const senses = src === "maqayis";
   const rawParas = (senses ? markSenses(text) : text).split(/\n+/);
   const paras = [];
