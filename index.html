@@ -638,7 +638,14 @@ function cardBody(text, own, src) {
       if (i + 1 < paras.length) {
         let j = i + 1, txt = paras[j].text;
         while (/\[/.test(txt) && !/\]/.test(txt) && j + 1 < paras.length) { j++; txt += " " + paras[j].text; }
-        blocks.push({ text: txt, refs: paras[j].refs, ayah: /[ء-ي]/.test(txt) });
+        const block = { text: txt, refs: paras[j].refs, ayah: /[ء-ي]/.test(txt) };
+        // A «؛ أي …» / «، …» gloss right after the آية explains it — keep it on
+        // the same line instead of orphaning it under the green verse.
+        if (block.ayah && j + 1 < paras.length && /^\s*(?:[؛،]|أَ?يْ?\s|أي\s)/.test(paras[j + 1].text)) {
+          block.gloss = paras[j + 1].text.trim();
+          j++;
+        }
+        blocks.push(block);
         i = j;
       }
     } else {
@@ -669,14 +676,15 @@ function cardBody(text, own, src) {
   // so drop them — along with their inline «N» reference markers — for a clean
   // read. Āyāt, verses and Bushro morphology stay.
   let mainHtml = "", morphHtml = "";
-  for (const { text: p, ayah } of flowed) {
+  for (const { text: p, ayah, gloss } of flowed) {
     if (bushro && MORPH_HEAD.test(p)) {
       const fmt = formatBushroMorph(p);
       morphHtml += '<p class="para morph">' + (fmt || esc(p)) + '</p>';
       continue;
     }
     if (ayah) {
-      mainHtml += '<p class="para"><span class="ayah">﴿' + esc(cleanAyah(p)) + '﴾</span></p>';
+      const tail = gloss ? (/^[؛،]/.test(gloss) ? "" : " ") + esc(gloss) : "";
+      mainHtml += '<p class="para"><span class="ayah">﴿' + esc(cleanAyah(p)) + '﴾</span>' + tail + '</p>';
       continue;
     }
     if (FOOTNOTE_HEAD.test(p)) continue;            // drop editor footnotes
