@@ -92,6 +92,7 @@
   .body .ayah-ref{color:var(--gold);font-size:.82em;font-style:normal}
   .body .hadith{color:var(--accent-bright);font-weight:600}
   .body .sense{color:#7c2d12;font-weight:700}
+  .body .sense-num{color:#7c2d12;font-weight:700}
   .body a.xref{color:var(--accent-bright);cursor:pointer;border-bottom:1px dashed var(--accent-bright);text-decoration:none}
   .body .para.footnote{font-size:.86em;color:var(--ink-soft);background:rgba(216,201,166,.20);border-right:3px solid var(--gold);padding:7px 12px;margin:8px 0;border-radius:6px;line-height:1.75}
   .body .fnref{display:inline-block;font-size:.72em;color:var(--ink-soft);vertical-align:super;line-height:1;margin:0 .15em;opacity:.7}
@@ -497,12 +498,13 @@ const styleSenses = s => s.replace(SENSE_WRAP_RE, '<span class="sense">$1</span>
  * (Maqayis uses single \n; Mufradat uses \n\n). */
 const FOOTNOTE_HEAD = /^\s*[—–-]\s*\(\s*[0-9٠-٩]+\s*\)/;
 
-function styleParagraph(p, own, senses) {
+function styleParagraph(p, own, senses, bushroNum) {
   let s = esc(p);
   s = styleHadith(s);
   s = linkifyXref(s, own || "");
   s = styleQuran(s);
   if (senses) s = styleSenses(s);
+  if (bushroNum) s = styleBushroNum(s);
   return s;
 }
 
@@ -526,8 +528,19 @@ const STRAY_PUNCT_ONLY = /^\s*[.,،؛:؟!]+\s*$/;
  * form, so drop a lone trailing Roman numeral. */
 const BUSHRO_FORM_TAIL = /\n+[ \t]*(?:IV|IX|X|VI{0,3}|I{1,3})[ \t]*$/;
 
+/* Bushro Uzbek entries pack several numbered senses on one line, e.g.
+ * «1) urmoq …; 2) urmoq (yurak haqida); 3) termoq …». Break each «N)» onto its
+ * own paragraph (only when it follows the start, a «;» or a «.» so years and
+ * footnote refs like «(1990)» are left alone) and bold the number so the
+ * reader can scan the meanings. */
+const markBushroSenses = t =>
+  t.replace(/(^|[;.])[ \t]*(\d{1,2}\))/g, (_m, sep, num) => (sep === "" ? "" : sep + "\n\n") + num);
+const BUSHRO_SENSE_NUM = /^(\d{1,2}\))/;
+const styleBushroNum = s => s.replace(BUSHRO_SENSE_NUM, '<span class="sense-num">$1</span>');
+
 function cardBody(text, own, src) {
-  if (src === "bushro") text = text.replace(BUSHRO_FORM_TAIL, "");
+  const bushro = src === "bushro";
+  if (bushro) text = markBushroSenses(text.replace(BUSHRO_FORM_TAIL, ""));
   const senses = src === "maqayis";
   const rawParas = (senses ? markSenses(text) : text).split(/\n+/);
   const paras = [];
@@ -548,7 +561,7 @@ function cardBody(text, own, src) {
     const refsHtml = refs.map(r =>
       ' <span class="fnref">' + esc(r) + '</span>'
     ).join("");
-    return '<p class="' + cls + '">' + styleParagraph(stripped, own, senses) + refsHtml + '</p>';
+    return '<p class="' + cls + '">' + styleParagraph(stripped, own, senses, bushro) + refsHtml + '</p>';
   }).join("");
 }
 
