@@ -359,6 +359,11 @@ function searchBookTitle(src, nq) {
     else if (isLemmaPrefix(e._n, nq)) pref.push(e);
   }
   pref.sort((a, b) => b._n.length - a._n.length); // longest (most specific) root first
+  // Bushro is a bilingual word↔word dictionary: a lookup like «حمد» should
+  // return the حمد entry itself, not every word that merely starts with or
+  // contains it (أحمد، حمدل، حمدلة …). When an exact match exists, show only
+  // exact matches; otherwise fall back to prefix/substring for typos/inflections.
+  if ((src === "bushro" || src === "bushro_uz") && exact.length) return exact;
   return exact.concat(starts, incl, pref);
 }
 
