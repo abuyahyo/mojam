@@ -492,12 +492,12 @@ const styleSenses = s => s.replace(SENSE_WRAP_RE, '<span class="sense">$1</span>
  * (Maqayis uses single \n; Mufradat uses \n\n). */
 const FOOTNOTE_HEAD = /^\s*[—–-]\s*\(\s*[0-9٠-٩]+\s*\)/;
 
-function styleParagraph(p, own) {
+function styleParagraph(p, own, senses) {
   let s = esc(p);
   s = styleHadith(s);
   s = linkifyXref(s, own || "");
   s = styleQuran(s);
-  s = styleSenses(s);
+  if (senses) s = styleSenses(s);
   return s;
 }
 
@@ -511,8 +511,13 @@ function styleParagraph(p, own) {
 const FN_REF_ONLY = /^\s*[«‹]\s*[0-9٠-٩]+\s*[»›]\s*$/;
 const STRAY_PUNCT_ONLY = /^\s*[.,،؛:؟!]+\s*$/;
 
-function cardBody(text, own) {
-  const rawParas = markSenses(text).split(/\n+/);
+/* Sense-marker styling is a Maqayis convention (root-meaning enumeration:
+ * فالأول، والأصل الثاني …). Other books use و+ordinal narratively (lists of
+ * narrators, poets, items), so applying it there produces false positives —
+ * keep it on for maqayis only. */
+function cardBody(text, own, src) {
+  const senses = src === "maqayis";
+  const rawParas = (senses ? markSenses(text) : text).split(/\n+/);
   const paras = [];
   for (const p of rawParas) {
     if (!p.trim()) continue;
@@ -531,7 +536,7 @@ function cardBody(text, own) {
     const refsHtml = refs.map(r =>
       ' <span class="fnref">' + esc(r) + '</span>'
     ).join("");
-    return '<p class="' + cls + '">' + styleParagraph(stripped, own) + refsHtml + '</p>';
+    return '<p class="' + cls + '">' + styleParagraph(stripped, own, senses) + refsHtml + '</p>';
   }).join("");
 }
 
@@ -542,7 +547,7 @@ function cardHTML_dict(e, nq, extraClass) {
   return '<article class="' + cls + '" data-src="' + e._src + '" data-idx="' + e._idx + '">' +
     '<div class="card-head"><h2 class="root">' + highlight(esc(e.root), nq) + '</h2>' +
     '<div class="head-right"><span class="ref">' + BOOKS[e._src].name + '</span>' + copyBtn("نسخ") + '</div></div>' +
-    '<div class="body">' + highlight(cardBody(e.text, e._n), nq) + '</div></article>';
+    '<div class="body">' + highlight(cardBody(e.text, e._n, e._src), nq) + '</div></article>';
 }
 
 function cardHTML_lisanResult(rootEntry, nq) {
@@ -563,7 +568,7 @@ async function expandLisanInto(targetEl, chunkIdx, entryIdx, root) {
     let e = entries[entryIdx];
     if (!e || (root && e.root !== root)) e = entries.find(x => x.root === root) || e;
     if (!e) { targetEl.innerHTML = ""; return; }
-    targetEl.innerHTML = cardBody(e.text || "", e.root);
+    targetEl.innerHTML = cardBody(e.text || "", e.root, "lisan");
   } catch (err) {
     targetEl.innerHTML = '<span class="loading">تعذّر التحميل</span>';
   }
