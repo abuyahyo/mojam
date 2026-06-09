@@ -560,6 +560,33 @@ function formatBushroMorph(seg) {
   return parts.length ? parts.join(" · ") : null;
 }
 
+/* Bushro uses terse dictionary abbreviations: verb rection (n.gadir, k.nidir …
+ * = nima/kim + case), grammar (tush.k., shun., majh., gram.) and field labels
+ * (bot., med. …). Expand them at render time so entries read in full. ko'p./
+ * muan./qar./ikk. are left for the morphology line; uncertain ones are kept. */
+const BUSHRO_ABBR = {
+  "k.ningdir":"kimningdir","n.ningdir":"nimaningdir","n.bilandir":"nima bilandir","k.bilandir":"kim bilandir",
+  "k.uchundir":"kim uchundir","n.uchundir":"nima uchundir","n.dandir":"nimadandir","k.dandir":"kimdandir",
+  "n.gadir":"nimagadir","k.gadir":"kimgadir","n.nidir":"nimanidir","k.nidir":"kimnidir",
+  "n.dadir":"nimadadir","k.dadir":"kimdadir","n.dir":"nimadir","k.dir":"kimdir",
+  "n.ning":"nimaning","k.ning":"kimning","n.dan":"nimadan","k.dan":"kimdan",
+  "n.ga":"nimaga","k.ga":"kimga","n.ni":"nimani","k.ni":"kimni","n.da":"nimada","k.da":"kimda",
+  "shun.":"shuningdek","mas.":"masalan","majh.":"majhul","gram.":"grammatik","qisq.":"qisqartma",
+  "maqol.":"maqol","qo'sh.":"qo'shimcha",
+  "bot.":"botanika","zool.":"zoologiya","anat.":"anatomiya","mat.":"matematika","fiz.":"fizika",
+  "biol.":"biologiya","astr.":"astronomiya","tar.":"tarix","harb.":"harbiy","sport.":"sport",
+  "yur.":"yuridik","tex.":"texnika","din.":"diniy","fals.":"falsafa","fon.":"fonetika","muz.":"musiqa",
+  "arxit.":"arxitektura","min.":"mineralogiya","shaxm.":"shaxmat","med.":"tibbiyot","kimyo.":"kimyo",
+};
+const BUSHRO_ABBR_RE = new RegExp("\\b(?:" +
+  Object.keys(BUSHRO_ABBR).map(a => a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")", "g");
+function expandBushroAbbr(t) {
+  t = t.replace(/\btush\.\s*k\./g, "tushum kelishigi");          // accusative-case note
+  t = t.replace(BUSHRO_ABBR_RE, m => BUSHRO_ABBR[m] || m);
+  t = t.replace(/(^|[^a-z'.؀-ۿ])([kn])\.(?![a-z'])/g, (_m, p, c) => p + (c === "k" ? "kim" : "nima"));
+  return t;
+}
+
 function cardBody(text, own, src) {
   const bushro = src === "bushro";
   if (bushro) text = markBushroSenses(text.replace(BUSHRO_FORM_TAIL, ""));
@@ -635,7 +662,7 @@ function cardBody(text, own, src) {
     }
     const isFootnote = FOOTNOTE_HEAD.test(p);
     const isVerse = !bushro && !isFootnote && VERSE_RE.test(p);
-    const stripped = isFootnote ? p.replace(/^\s*[—–-]\s+/, "") : p;
+    const stripped = bushro ? expandBushroAbbr(p) : (isFootnote ? p.replace(/^\s*[—–-]\s+/, "") : p);
     const cls = "para" + (isFootnote ? " footnote" : "") + (isVerse ? " verse" : "");
     const refsHtml = refs.map(r =>
       ' <span class="fnref">' + esc(r) + '</span>'
