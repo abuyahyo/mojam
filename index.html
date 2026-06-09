@@ -505,6 +505,18 @@ const isFihiIntro = t => {
   const n = normalize(t);
   return n === "وفيه:" || n === "وفيه ايضا:";
 };
+/* Lisan cites Prophetic traditions the same way it cites the Qur'an: an intro
+ * formula «وفي الحديث:» / «وفي حديث فلان:» / «وجاء في الخبر:» on its own line,
+ * then the hadith text on the next paragraph. Detect the intro (diacritic-
+ * insensitive) so the following text can be coloured like آيات are greened.
+ * Kept short and anchored to an opening «في/جاء/روي/ومنه …» so prose that merely
+ * mentions «الحديث» mid-sentence isn't mistaken for an intro. */
+const isHadithIntro = t => {
+  const n = normalize(t);
+  return n.length <= 70 && n.endsWith(":")
+      && /^(?:و?في|و?جاء|و?روي|ويروي|ومنه|ومنها|وجاءت|وروينا) /.test(n)
+      && /(?:^| )(?:ال)?(?:حديث|خبر)/.test(n);
+};
 const cleanAyah = t => t.trim()
   .replace(/[\[\]]/g, "")                          // citation brackets
   .replace(/\*/g, "")                              // Qur'an «*» marker
@@ -632,19 +644,31 @@ function cardBody(text, own, src) {
   for (let i = 0; i < paras.length; i++) {
     const tanzil = !bushro && isTanzilIntro(paras[i].text);
     const fihi = !bushro && !tanzil && quranCtx && isFihiIntro(paras[i].text);
-    if ((tanzil || fihi) && i + 1 < paras.length) {
-      quranCtx = true;
-      let j = i + 1, txt = paras[j].text;
-      while (/\[/.test(txt) && !/\]/.test(txt) && j + 1 < paras.length) { j++; txt += " " + paras[j].text; }
-      // Keep the «وفي التنزيل:» / «وفيه:» intro on the same line as its آية.
-      const block = { text: txt, refs: paras[j].refs, ayah: /[ء-ي]/.test(txt), lead: paras[i].text.trim() };
-      // A «؛ أي …» / «، …» gloss right after the آية explains it — keep it on
-      // the same line instead of orphaning it under the green verse.
-      if (block.ayah && j + 1 < paras.length && /^\s*(?:[؛،]|أَ?يْ?\s|أي\s)/.test(paras[j + 1].text)) {
-        block.gloss = paras[j + 1].text.trim();
-        j++;
+    const hadith = !bushro && !tanzil && !fihi && isHadithIntro(paras[i].text);
+    // The text introduced by «وفي التنزيل/الحديث:» sits on the next paragraph;
+    // skip a محقّق footnote if one is interleaved between the intro and its text.
+    let j = i + 1;
+    while ((tanzil || fihi || hadith) && j < paras.length && FOOTNOTE_HEAD.test(paras[j].text)) j++;
+    if ((tanzil || fihi || hadith) && j < paras.length) {
+      let txt = paras[j].text;
+      if (tanzil || fihi)
+        while (/\[/.test(txt) && !/\]/.test(txt) && j + 1 < paras.length) { j++; txt += " " + paras[j].text; }
+      // Keep the «وفي التنزيل:» / «وفي الحديث:» intro on the same line as its text.
+      const block = { text: txt, refs: paras[j].refs, lead: paras[i].text.trim() };
+      if (hadith) {
+        block.hadith = /[ء-ي]/.test(txt);
+      } else {
+        block.ayah = /[ء-ي]/.test(txt);
+        // A «؛ أي …» / «، …» gloss right after the آية explains it — keep it on
+        // the same line instead of orphaning it under the green verse.
+        if (block.ayah && j + 1 < paras.length && /^\s*(?:[؛،]|أَ?يْ?\s|أي\s)/.test(paras[j + 1].text)) {
+          block.gloss = paras[j + 1].text.trim();
+          j++;
+        }
       }
       blocks.push(block);
+      // A hadith is not Qur'an context, so a following «وفيه:» is left alone.
+      quranCtx = tanzil || fihi;
       i = j;
     } else {
       blocks.push(paras[i]);
@@ -662,7 +686,7 @@ function cardBody(text, own, src) {
     let buf = null;
     const flush = () => { if (buf) { flowed.push(buf); buf = null; } };
     for (const b of blocks) {
-      if (b.ayah || FOOTNOTE_HEAD.test(b.text) || VERSE_RE.test(b.text)) { flush(); flowed.push(b); continue; }
+      if (b.ayah || b.hadith || FOOTNOTE_HEAD.test(b.text) || VERSE_RE.test(b.text)) { flush(); flowed.push(b); continue; }
       if (!buf) buf = { text: b.text, refs: (b.refs || []).slice() };
       else { buf.text = buf.text.replace(/\s+$/, "") + " " + b.text.trim(); if (b.refs) buf.refs.push(...b.refs); }
       if (/[.؟!]\s*$/.test(buf.text)) flush();
@@ -675,7 +699,7 @@ function cardBody(text, own, src) {
   // so drop them — along with their inline «N» reference markers — for a clean
   // read. Āyāt, verses and Bushro morphology stay.
   let mainHtml = "", morphHtml = "";
-  for (const { text: p, ayah, gloss, lead } of flowed) {
+  for (const { text: p, ayah, hadith, gloss, lead } of flowed) {
     if (bushro && MORPH_HEAD.test(p)) {
       const fmt = formatBushroMorph(p);
       morphHtml += '<p class="para morph">' + (fmt || esc(p)) + '</p>';
@@ -685,6 +709,19 @@ function cardBody(text, own, src) {
       const head = lead ? esc(lead) + " " : "";
       const tail = gloss ? (/^[؛،]/.test(gloss) ? "" : " ") + esc(gloss) : "";
       mainHtml += '<p class="para">' + head + '<span class="ayah">﴿' + esc(cleanAyah(p)) + '﴾</span>' + tail + '</p>';
+      continue;
+    }
+    if (hadith) {
+      const head = lead ? esc(lead) + " " : "";
+      // Drop footnote «(N)» refs, then peel off a trailing «أَيْ …» author-gloss so
+      // only the tradition itself is reddened (matches the آية gloss treatment).
+      let core = p.replace(/[ \t]*\(\s*[0-9٠-٩]+\s*\)/g, "").replace(/[ \t]{2,}/g, " ").trim();
+      let gl = "";
+      const m = core.match(/\sأَ?يْ?(?=\s)/);
+      if (m) { gl = core.slice(m.index + 1).trim(); core = core.slice(0, m.index); }
+      core = core.replace(/^[«»\[\s،؛]+|[«»\]\s.،؛]+$/g, "");
+      mainHtml += '<p class="para">' + head + '<span class="hadith">«' + esc(core) + '»</span>'
+                + (gl ? " " + esc(gl) : "") + '</p>';
       continue;
     }
     if (FOOTNOTE_HEAD.test(p)) continue;            // drop editor footnotes
