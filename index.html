@@ -93,6 +93,8 @@
   .body .hadith{color:var(--accent-bright);font-weight:600}
   .body .sense{color:#7c2d12;font-weight:700}
   .body .sense-num{color:#7c2d12;font-weight:700}
+  .body .para.morph{font-size:.9em;color:var(--ink-soft);border-top:1px dashed var(--line);margin-top:10px;padding-top:8px;line-height:1.8}
+  .body .morph-l{font-weight:600;color:var(--accent)}
   .body a.xref{color:var(--accent-bright);cursor:pointer;border-bottom:1px dashed var(--accent-bright);text-decoration:none}
   .body .para.footnote{font-size:.86em;color:var(--ink-soft);background:rgba(216,201,166,.20);border-right:3px solid var(--gold);padding:7px 12px;margin:8px 0;border-radius:6px;line-height:1.75}
   .body .fnref{display:inline-block;font-size:.72em;color:var(--ink-soft);vertical-align:super;line-height:1;margin:0 .15em;opacity:.7}
@@ -538,6 +540,32 @@ const markBushroSenses = t =>
 const BUSHRO_SENSE_NUM = /^(\d{1,2}\))/;
 const styleBushroNum = s => s.replace(BUSHRO_SENSE_NUM, '<span class="sense-num">$1</span>');
 
+/* Bushro entries end with cryptic morphology metadata the source crams onto a
+ * hyphen-joined trailing line: a leading verb form (Roman numeral) + perfect
+ * vowel introduces the مصدر, and the abbreviations ko'p./ikk./muan./qar. label
+ * the plural/dual/feminine/cross-reference. Reformat it into a readable, labeled
+ * Arabic line (e.g. «I-а-بَحْثٌ» → «مصدر: بَحْثٌ»). */
+const MORPH_LABELS = { "ko'p.": "جمع", "ko'p": "جمع", "ikk.": "مثنى", "ikk": "مثنى", "muan.": "مؤنث", "muan": "مؤنث", "qar.": "انظر", "qar": "انظر" };
+const MORPH_ROMAN = /^(?:I{1,3}|IV|VI{0,3}|IX|X)$/;
+const MORPH_HEAD = /^(?:(?:I{1,3}|IV|VI{0,3}|IX|X)-|ko'p\.?-|ikk\.?-|muan\.?-|qar\.?-)/;
+function formatBushroMorph(seg) {
+  const tokens = seg.split("-").map(t => t.trim()).filter(Boolean);
+  if (!tokens.length) return null;
+  const groups = [];
+  let cur = null, started = false, i = 0;
+  if (MORPH_ROMAN.test(tokens[0])) { cur = { label: "مصدر", values: [] }; groups.push(cur); started = true; i = 1; }
+  for (; i < tokens.length; i++) {
+    const tok = tokens[i], lab = MORPH_LABELS[tok];
+    if (lab) { if (!cur || cur.label !== lab) { cur = { label: lab, values: [] }; groups.push(cur); } started = true; }
+    else if (/[؀-ۿ]/.test(tok) && cur) cur.values.push(esc(tok));
+    // else: vowel hints / latin scraps are dropped
+  }
+  if (!started) return null;
+  const parts = groups.filter(g => g.values.length)
+    .map(g => '<span class="morph-l">' + g.label + ':</span> ' + g.values.join("، "));
+  return parts.length ? parts.join(" · ") : null;
+}
+
 function cardBody(text, own, src) {
   const bushro = src === "bushro";
   if (bushro) text = markBushroSenses(text.replace(BUSHRO_FORM_TAIL, ""));
@@ -558,8 +586,13 @@ function cardBody(text, own, src) {
   // mid-text, so they can land between the opening definition and the body.
   // Collect them and render them together at the end of the entry, keeping the
   // reading flow uninterrupted while preserving their order.
-  let mainHtml = "", noteHtml = "";
+  let mainHtml = "", noteHtml = "", morphHtml = "";
   for (const { text: p, refs } of paras) {
+    if (bushro && MORPH_HEAD.test(p)) {
+      const fmt = formatBushroMorph(p);
+      morphHtml += '<p class="para morph">' + (fmt || esc(p)) + '</p>';
+      continue;
+    }
     const isFootnote = FOOTNOTE_HEAD.test(p);
     const stripped = isFootnote ? p.replace(/^\s*[—–-]\s+/, "") : p;
     const cls = "para" + (isFootnote ? " footnote" : "");
@@ -569,7 +602,7 @@ function cardBody(text, own, src) {
     const html = '<p class="' + cls + '">' + styleParagraph(stripped, own, senses, bushro) + refsHtml + '</p>';
     if (isFootnote) noteHtml += html; else mainHtml += html;
   }
-  return mainHtml + noteHtml;
+  return mainHtml + noteHtml + morphHtml;
 }
 
 const copyBtn = title => '<button class="copy-btn" data-action="copy" title="' + title + '" aria-label="' + title + '">⧉</button>';
