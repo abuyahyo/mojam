@@ -376,6 +376,7 @@ function linkifyXref(s, own) {
 /* Quran ayah styling: {...} → ﴿﴾ green; [sura/N] → gold; also detect a verse
  * preceding a [sura/N] reference even without braces. */
 const AYAH_CIT = /\[[^\[\]]*?\/\s*[0-9٠-٩]+[^\[\]]*?\]/g;
+const AYAH_CIT_ANY = /\[[^\[\]]*\/\s*[0-9٠-٩][^\[\]]*\]/; // non-global, for .test()
 const VERSE_INTRO = /(?:^|[\s،؛(])(?:[وفبكل]?قوله|[وف]?قال|كقوله|نحو|وعلى ذلك|وعلى هذا|على ذلك|على هذا|ومنه)\s/g;
 function styleQuran(s) {
   s = s.replace(/\{([^{}]*)\}/g, '<span class="ayah">﴿$1﴾</span>');
@@ -476,6 +477,15 @@ function styleParagraph(p, own, senses, bushroNum) {
 const FN_REF_ONLY = /^\s*[«‹]\s*[0-9٠-٩]+\s*[»›]\s*$/;
 const STRAY_PUNCT_ONLY = /^\s*[.,،؛:؟!]+\s*$/;
 
+/* A paragraph that opens with a Quran citation «[الأعراف/ 78]» belongs to the
+ * آية quoted in the paragraph just above it — Mufradat prints the verse on its
+ * own line, then the citation + commentary on the next. Fold it back so the
+ * verse and its citation share one paragraph and styleQuran can colour the
+ * verse green (it only links a verse to a citation within one paragraph). */
+const AYAH_CIT_LEAD = /^\s*\[[^\[\]]*\/\s*[0-9٠-٩][^\[\]]*\]/;
+const isAyahCandidate = t =>
+  /[ء-ي]/.test(t) && t.replace(/\s/g, "").length <= 170 && !AYAH_CIT_ANY.test(t) && !FOOTNOTE_HEAD.test(t);
+
 /* A poetry line (بيت): a whole paragraph made only of Arabic text and light
  * punctuation, with the two hemistichs (صدر … عجز) split by a central ellipsis
  * — «…» in Maqayis/Lisan, «...» in Mufradat. Requiring the entire paragraph to
@@ -541,6 +551,8 @@ function cardBody(text, own, src) {
       paras[paras.length - 1].refs.push(p.trim());
     } else if (STRAY_PUNCT_ONLY.test(p) && paras.length) {
       paras[paras.length - 1].text = paras[paras.length - 1].text.replace(/\s+$/, "") + p.trim();
+    } else if (!bushro && AYAH_CIT_LEAD.test(p) && paras.length && isAyahCandidate(paras[paras.length - 1].text)) {
+      paras[paras.length - 1].text = paras[paras.length - 1].text.replace(/\s+$/, "") + " " + p.trim();
     } else {
       paras.push({ text: p, refs: [] });
     }
