@@ -577,7 +577,13 @@ function formatBushroMorph(seg) {
   for (; i < tokens.length; i++) {
     const tok = tokens[i], lab = MORPH_LABELS[tok];
     if (lab) { if (!cur || cur.label !== lab) { cur = { label: lab, values: [] }; groups.push(cur); } started = true; }
-    else if (/[؀-ۿ]/.test(tok) && cur) cur.values.push(esc(tok));
+    else if (/[؀-ۿ]/.test(tok) && cur) {
+      // The source often records the sound feminine plural as a bare ending «اتٌ»
+      // (the stem dropped). On its own it reads like a meaningless word, so when
+      // the value under «جمع» is just that ending, mark it as a suffix with a
+      // leading tatweel («ـاتٌ») — the conventional «plural in -āt» notation.
+      cur.values.push(esc(cur.label === "جمع" && /^اتٌ?$/.test(tok) ? "ـ" + tok : tok));
+    }
     // else: vowel hints / latin scraps are dropped
   }
   if (!started) return null;
