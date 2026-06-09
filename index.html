@@ -543,6 +543,13 @@ const BUSHRO_FORM_TAIL = /\n+[ \t]*(?:IV|IX|X|VI{0,3}|I{1,3})(?:-\d{1,2})?[ \t]*
  * with its index as a lone trailing number («… doimiy\n\n1», «… mevalari\n\n2»).
  * The card already shows the headword, so this dangling digit is noise — drop it. */
 const BUSHRO_HOMOGRAPH_TAIL = /\n+[ \t]*\d{1,2}[ \t]*$/;
+/* A bare «=» is the source's cross-reference marker («same as / see»). When a
+ * whole line is just «['N]=‑X» with an Arabic target (e.g. وَرِقٌ → «'=-وَارِقٌ»),
+ * it's a pure "see X" pointer — render it as «انظر X». Only matches a line that
+ * is solely the marker + an Arabic word, so inline equations «X = Y» and the
+ * hyphen-joined morph connector «ko'p.-=-آداب» (handled by the morph formatter)
+ * are left alone. */
+const BUSHRO_XREF = /(^|\n\n)[-'\d \t]*=[ \t]*-?[ \t]*([؀-ۿ]+(?:[ \t]+[؀-ۿ]+)*)[ \t]*(?=\n\n|$)/g;
 
 /* Bushro Uzbek entries pack several numbered senses on one line, e.g.
  * «1) urmoq …; 2) urmoq (yurak haqida); 3) termoq …». Break each «N)» onto its
@@ -665,7 +672,8 @@ function expandBushroAbbr(t) {
 
 function cardBody(text, own, src, head) {
   const bushro = src === "bushro";
-  if (bushro) text = markBushroSenses(text.replace(BUSHRO_HOMOGRAPH_TAIL, "").replace(BUSHRO_FORM_TAIL, ""));
+  if (bushro) text = markBushroSenses(text.replace(BUSHRO_HOMOGRAPH_TAIL, "").replace(BUSHRO_FORM_TAIL, "")
+                       .replace(BUSHRO_XREF, (_m, pre, ref) => pre + "انظر " + ref.trim()));
   // Maqayis/Lisan brackets poetry and citations with «*»; the markers carry no
   // reading value, so drop them (Bushro's «*» is its idiom marker, handled above).
   else text = text.replace(/[ \t]*\*[ \t]*/g, " ");
