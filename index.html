@@ -554,15 +554,22 @@ function cardBody(text, own, src) {
       paras.push({ text: p, refs: [] });
     }
   }
-  return paras.map(({ text: p, refs }) => {
+  // Editor footnotes (محقّق notes) are page-bottom notes the scraper dropped
+  // mid-text, so they can land between the opening definition and the body.
+  // Collect them and render them together at the end of the entry, keeping the
+  // reading flow uninterrupted while preserving their order.
+  let mainHtml = "", noteHtml = "";
+  for (const { text: p, refs } of paras) {
     const isFootnote = FOOTNOTE_HEAD.test(p);
     const stripped = isFootnote ? p.replace(/^\s*[—–-]\s+/, "") : p;
     const cls = "para" + (isFootnote ? " footnote" : "");
     const refsHtml = refs.map(r =>
       ' <span class="fnref">' + esc(r) + '</span>'
     ).join("");
-    return '<p class="' + cls + '">' + styleParagraph(stripped, own, senses, bushro) + refsHtml + '</p>';
-  }).join("");
+    const html = '<p class="' + cls + '">' + styleParagraph(stripped, own, senses, bushro) + refsHtml + '</p>';
+    if (isFootnote) noteHtml += html; else mainHtml += html;
+  }
+  return mainHtml + noteHtml;
 }
 
 const copyBtn = title => '<button class="copy-btn" data-action="copy" title="' + title + '" aria-label="' + title + '">⧉</button>';
