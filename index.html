@@ -91,6 +91,7 @@
   .body .ayah{color:#2c6e49;font-weight:600;font-family:-apple-system,system-ui,"SF Arabic","Geeza Pro","SF Pro Text",sans-serif;font-feature-settings:"liga" 1}
   .body .ayah-ref{color:var(--gold);font-size:.82em;font-style:normal}
   .body .hadith{color:var(--accent-bright);font-weight:600}
+  .body .sense{color:#7c2d12;font-weight:700}
   .body a.xref{color:var(--accent-bright);cursor:pointer;border-bottom:1px dashed var(--accent-bright);text-decoration:none}
   .body .para.footnote{font-size:.86em;color:var(--ink-soft);background:rgba(216,201,166,.20);border-right:3px solid var(--gold);padding:7px 12px;margin:8px 0;border-radius:6px;line-height:1.75}
   .body .fnref{display:inline-block;font-size:.72em;color:var(--ink-soft);vertical-align:super;line-height:1;margin:0 .15em;opacity:.7}
@@ -100,6 +101,10 @@
   .card.uz-card .body{text-align:left}
 
   .loading{color:var(--ink-soft);font-style:italic;font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif;font-size:14px}
+
+  .loading-screen{text-align:center;color:var(--ink-soft);padding:56px 20px;font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif;font-size:16px}
+  .loading-screen .spin{width:34px;height:34px;margin:0 auto 16px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
   .empty{text-align:center;color:var(--ink-soft);padding:56px 20px;font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif}
   .empty .sym{font-size:54px;color:#cbb88f;display:block;margin-bottom:18px;line-height:1}
@@ -177,8 +182,8 @@ const BOOKS = {
   lisan:    { name: "لسان العرب",    color: "#7c2d12", dataUrl: null /* lazy */ },
   maqayis:  { name: "مقاييس اللغة",  color: "#1d4e2c", dataUrl: "data/maqayis.json" },
   mufradat: { name: "المفردات",      color: "#6b3e94", dataUrl: "data/mufradat.json" },
-  bushro:    { name: "بشرى",         color: "#0e6b6b", dataUrl: "data/bushro.json",    optional: true },
-  bushro_uz: { name: "بشرى",         color: "#0e6b6b", dataUrl: "data/bushro_uz.json", optional: true },
+  bushro:    { name: "أوزبكي",         color: "#0e6b6b", dataUrl: "data/bushro.json",    optional: true },
+  bushro_uz: { name: "أوزبكي",         color: "#0e6b6b", dataUrl: "data/bushro_uz.json", optional: true },
 };
 const LISAN_ROOTS_URL = "data/lisan/roots.json";
 const LISAN_CHUNKS_URL = "data/lisan/chunks.json";
@@ -247,6 +252,8 @@ let ROOTSET = new Set();     // all known normalized roots (xref target check)
 let HAS_BUSHRO = false;      // set after data/bushro.json loads successfully
 let activeSources = new Set(["lisan", "maqayis", "mufradat"]);
 let scale = parseFloat(localStorage.getItem("reader_scale") || "1") || 1;
+let dataReady = false;       // dictionaries finished loading & normalizing
+let pendingQuery = null;     // query typed/restored before data was ready
 
 /* ============================================================
  * Data loading
@@ -265,18 +272,17 @@ function addBushroUI() {
   const chip = document.createElement("button");
   chip.className = "filter on";
   chip.dataset.src = "bushro";
-  chip.textContent = "بشرى";
+  chip.textContent = "أوزبكي";
   filtersEl.appendChild(chip);
   // Reflect the 4th book in the header (stays "الثلاثة" when bushro is absent).
   const h1 = document.querySelector("header.site h1");
   if (h1) h1.textContent = "المعاجم الأربعة";
   const sub = document.querySelector("header.site .sub");
-  if (sub) sub.textContent += " · بشرى (عربي–أوزبكي)";
+  if (sub) sub.textContent += " · أوزبكي (عربي–أوزبكي)";
   document.title = "المعاجم الأربعة";
 }
 
 async function loadInitial() {
-  countEl.textContent = "جارٍ تحميل البيانات…";
   try {
     const [maqayis, mufradat, lisanRoots, lisanChunks, bushro, bushroUz] = await Promise.all([
       loadJSON(BOOKS.maqayis.dataUrl),
@@ -428,6 +434,52 @@ function styleQuran(s) {
   return s.replace(/\[([^\[\]]*[0-9٠-٩][^\[\]]*)\]/g, '<span class="ayah-ref">[$1]</span>');
 }
 
+/* ------------------------------------------------------------------
+ * Sense markers (ما يدلّ على المعنى) — Maqayis-style articles introduce each
+ * root meaning with a fixed cue: «فالأول», «والأصل الثاني», «وأمّا الثالث»,
+ * or a bare ordinal «والآخر / والثاني …» right after a full stop. We tag each
+ * cue with <span class="sense"> (dark red, bold) and force it onto its own
+ * paragraph so a reader can scan the 1st / 2nd / 3rd meaning at a glance.
+ *
+ * Quran ﴿…﴾ are NOT sense markers — they stay green via styleQuran and are
+ * untouched here (our patterns never match braces/guillemets).
+ *
+ * All patterns are diacritic-tolerant: optional tashkeel (U+064B–U+065F),
+ * dagger alif (U+0670) and tatweel (U+0640) may sit between any two letters,
+ * so both الأوّل (vocalised) and الأول (bare) match. A trailing Arabic-letter
+ * lookahead enforces a word boundary so we never match inside a longer word.
+ * ------------------------------------------------------------------ */
+const SENSE_D = "[\\u064B-\\u065F\\u0670\\u0640]*";
+const senseWord = w => [...w].join(SENSE_D) + SENSE_D;
+const SENSE_ORDINALS = [
+  "الآخر", "الأخرى", "الثاني", "الثانية", "الثالث", "الثالثة",
+  "الرابع", "الرابعة", "الخامس", "الخامسة", "السادس", "السادسة",
+];
+const SENSE_NO_LETTER = "(?![ء-يٱ])";           // word boundary: no Arabic letter follows
+const _ord     = "(?:" + SENSE_ORDINALS.map(senseWord).join("|") + ")";
+const _cat1    = "(?:" + ["فالأولى", "فالأول"].map(senseWord).join("|") + ")";
+const _cat2    = senseWord("والأصل") + "\\s+" + _ord;
+const _cat3    = senseWord("وأما") + "\\s+(?:" + senseWord("الأصل") + "\\s+)?" + _ord;
+const _bareOrd = "(?:" + SENSE_ORDINALS.map(o => senseWord("و" + o)).join("|") + ")";
+const SENSE_PHRASE      = "(?:" + [_cat1, _cat2, _cat3].join("|") + ")";
+const SENSE_MARKER_BODY = "(?:" + SENSE_PHRASE + "|" + _bareOrd + ")";
+
+// Break phase (raw text): drop a paragraph break before every cue so each
+// meaning starts fresh. Phrase cues (و/ف…) break after any whitespace/start;
+// bare ordinals only after a sentence end (. ؟ !) to avoid mid-sentence «and the other».
+const SENSE_PHRASE_RE = new RegExp("(?:^|\\s)(" + SENSE_PHRASE + ")" + SENSE_NO_LETTER, "g");
+const SENSE_BARE_RE   = new RegExp("([.؟!]\\s*)(" + _bareOrd + ")" + SENSE_NO_LETTER, "g");
+function markSenses(text) {
+  text = text.replace(SENSE_PHRASE_RE, (_m, mk) => "\n\n" + mk);
+  text = text.replace(SENSE_BARE_RE, (_m, lead, mk) => lead + "\n\n" + mk);
+  return text;
+}
+
+// Wrap phase (escaped paragraph): after the break each cue sits at the start
+// of its paragraph, so wrap the leading cue in the sense span.
+const SENSE_WRAP_RE = new RegExp("^(" + SENSE_MARKER_BODY + ")" + SENSE_NO_LETTER);
+const styleSenses = s => s.replace(SENSE_WRAP_RE, '<span class="sense">$1</span>');
+
 /* Editor's footnotes (محقّق notes) appear inline between sentences:
  *   "main text...\n— (١) فى اللسان (صحب): ...\nmain text continues..."
  * Each "— (N) ..." line is rendered as a muted inline-styled paragraph so
@@ -440,6 +492,7 @@ function styleParagraph(p, own) {
   s = styleHadith(s);
   s = linkifyXref(s, own || "");
   s = styleQuran(s);
+  s = styleSenses(s);
   return s;
 }
 
@@ -454,7 +507,7 @@ const FN_REF_ONLY = /^\s*[«‹]\s*[0-9٠-٩]+\s*[»›]\s*$/;
 const STRAY_PUNCT_ONLY = /^\s*[.,،؛:؟!]+\s*$/;
 
 function cardBody(text, own) {
-  const rawParas = text.split(/\n+/);
+  const rawParas = markSenses(text).split(/\n+/);
   const paras = [];
   for (const p of rawParas) {
     if (!p.trim()) continue;
@@ -511,9 +564,25 @@ async function expandLisanInto(targetEl, chunkIdx, entryIdx, root) {
   }
 }
 
+/* Centered spinner shown while the dictionaries are still loading and the
+ * user already has a real query waiting to run. */
+function showLoading() {
+  countEl.textContent = "";
+  resEl.innerHTML = '<div class="loading-screen"><div class="spin"></div><div>جارٍ تحميل المعاجم…</div></div>';
+}
+
 function doSearch(q) {
   clearEl.classList.toggle("show", q.length > 0);
   const nq = normalize(q);
+  // Data not loaded yet: remember the query and re-run it once loadInitial
+  // resolves. Only show the spinner for a real query so a plain refresh keeps
+  // a clean, empty screen instead of flashing a loading message.
+  if (!dataReady) {
+    pendingQuery = q;
+    if (nq.length >= 2) showLoading();
+    else { resEl.innerHTML = ""; countEl.textContent = ""; }
+    return;
+  }
   if (!nq) {
     resEl.innerHTML = "";
     countEl.textContent = "";
@@ -799,15 +868,20 @@ prewarmClose.addEventListener("click", () => {
 /* ============================================================
  * Boot
  * ============================================================ */
+// Restore any query from the URL hash right away so the search box isn't
+// empty during the load. doSearch() queues it (showing a spinner only for a
+// real query) until the dictionaries finish loading.
+const bootMatch = location.hash.match(/q=([^&]*)/);
+if (bootMatch) {
+  qEl.value = decodeURIComponent(bootMatch[1]);
+  doSearch(qEl.value);
+}
+
 loadInitial().then(() => {
-  const qm = location.hash.match(/q=([^&]*)/);
-  if (qm) {
-    const q = decodeURIComponent(qm[1]);
-    qEl.value = q;
-    doSearch(q);
-  }
+  dataReady = true;
+  if (pendingQuery !== null) { const pq = pendingQuery; pendingQuery = null; doSearch(pq); }
   maybeShowPrewarm();
-});
+}).catch(() => { /* error already rendered by loadInitial */ });
 
 /* ============================================================
  * Service worker
