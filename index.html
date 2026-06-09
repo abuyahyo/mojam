@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>المعاجم الثلاثة — لسان العرب · مقاييس اللغة · المفردات</title>
-<meta name="description" content="بحث موحَّد في ثلاثة معاجم: لسان العرب لابن منظور، ومقاييس اللغة لابن فارس، والمفردات للراغب الأصفهاني.">
+<title>المعاجم الأربعة — لسان العرب · مقاييس اللغة · المفردات · أوزبكي</title>
+<meta name="description" content="بحث موحَّد في أربعة معاجم: لسان العرب لابن منظور، ومقاييس اللغة لابن فارس، والمفردات للراغب الأصفهاني، وأوزبكي (عربي–أوزبكي).">
 <meta name="theme-color" content="#7c2d12">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="favicon.png" sizes="48x48">
@@ -133,8 +133,8 @@
 <body>
 <div class="wrap">
   <header class="site">
-    <h1>المعاجم الثلاثة</h1>
-    <div class="sub">لسان العرب لابن منظور · مقاييس اللغة لابن فارس · المفردات للراغب الأصفهاني</div>
+    <h1>المعاجم الأربعة</h1>
+    <div class="sub">لسان العرب لابن منظور · مقاييس اللغة لابن فارس · المفردات للراغب الأصفهاني · أوزبكي (عربي–أوزبكي)</div>
     <div class="divider"></div>
   </header>
 
@@ -152,6 +152,7 @@
     <button class="filter on" data-src="lisan">لسان العرب</button>
     <button class="filter on" data-src="maqayis">مقاييس اللغة</button>
     <button class="filter on" data-src="mufradat">المفردات</button>
+    <button class="filter on" data-src="bushro">أوزبكي</button>
   </div>
 
   <div class="prewarm-bar" id="prewarmBar" hidden>
@@ -253,7 +254,7 @@ let LISAN_CHUNKS = [];       // [{idx, file, start, count, size_kb}, ...]
 const LISAN_CHUNK_CACHE = {}; // chunkIdx → entries array [{root, text}, ...]
 let ROOTSET = new Set();     // all known normalized roots (xref target check)
 let HAS_BUSHRO = false;      // set after data/bushro.json loads successfully
-let activeSources = new Set(["lisan", "maqayis", "mufradat"]);
+let activeSources = new Set(["lisan", "maqayis", "mufradat", "bushro"]);
 let scale = parseFloat(localStorage.getItem("reader_scale") || "1") || 1;
 let dataReady = false;       // dictionaries finished loading & normalizing
 let pendingQuery = null;     // query typed/restored before data was ready
@@ -265,24 +266,6 @@ async function loadJSON(url) {
   const r = await fetch(url);
   if (!r.ok) throw new Error("fetch " + url + " → " + r.status);
   return r.json();
-}
-
-/* Bushro is loaded only when data/bushro.json is present (gitignored on the
- * public deploy). When found, inject the filter chip so the rest of the UI
- * treats it like any other book. */
-function addBushroUI() {
-  if (document.querySelector('.filter[data-src="bushro"]')) return;
-  const chip = document.createElement("button");
-  chip.className = "filter on";
-  chip.dataset.src = "bushro";
-  chip.textContent = "أوزبكي";
-  filtersEl.appendChild(chip);
-  // Reflect the 4th book in the header (stays "الثلاثة" when bushro is absent).
-  const h1 = document.querySelector("header.site h1");
-  if (h1) h1.textContent = "المعاجم الأربعة";
-  const sub = document.querySelector("header.site .sub");
-  if (sub) sub.textContent += " · أوزبكي (عربي–أوزبكي)";
-  document.title = "المعاجم الأربعة";
 }
 
 async function loadInitial() {
@@ -302,8 +285,6 @@ async function loadInitial() {
     if (bushro && bushro.length) {
       DATA.bushro = bushro;
       HAS_BUSHRO = true;
-      activeSources.add("bushro");
-      addBushroUI();
     }
     if (bushroUz && bushroUz.length) {
       DATA.bushro_uz = bushroUz;
@@ -967,7 +948,7 @@ if ("serviceWorker" in navigator) {
   closeBtn.addEventListener("click", dismiss);
   window.addEventListener("beforeinstallprompt", e => {
     e.preventDefault(); deferred = e;
-    show("ثبّت «المعاجم الثلاثة» على شاشتك الرئيسية للوصول السريع.", true);
+    show("ثبّت «المعاجم الأربعة» على شاشتك الرئيسية للوصول السريع.", true);
   });
   btn.addEventListener("click", () => {
     if (!deferred) return;
