@@ -117,16 +117,6 @@
   .install-bar .install-msg{flex:1;font-size:15px;color:var(--ink);line-height:1.75}
   .install-bar .install-do{flex:none;background:var(--accent);color:#f7efdd;border:none;border-radius:20px;padding:8px 18px;font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif;font-size:16px;cursor:pointer}
   .install-bar .install-x{flex:none;background:transparent;border:none;color:var(--ink-soft);font-size:18px;cursor:pointer;width:30px;height:30px;line-height:1}
-
-  /* Offline pre-warm progress */
-  .prewarm-bar{display:flex;align-items:center;gap:10px;background:var(--paper-deep);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin:0 0 14px;font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif}
-  .prewarm-bar[hidden]{display:none}
-  .prewarm-bar .pw-msg{flex:1;font-size:14px;color:var(--ink);line-height:1.6}
-  .prewarm-bar .pw-bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:4px}
-  .prewarm-bar .pw-fill{height:100%;width:0;background:var(--accent);transition:width .25s}
-  .prewarm-bar .pw-action{flex:none;background:var(--accent);color:#f7efdd;border:none;border-radius:18px;padding:6px 14px;font-family:-apple-system,"SF Arabic","Geeza Pro",system-ui,sans-serif;font-size:14px;cursor:pointer}
-  .prewarm-bar .pw-action:disabled{opacity:.6;cursor:default}
-  .prewarm-bar .pw-x{flex:none;background:transparent;border:none;color:var(--ink-soft);font-size:18px;cursor:pointer;width:28px;height:28px;line-height:1}
 </style>
 </head>
 <body>
@@ -152,15 +142,6 @@
     <button class="filter on" data-src="maqayis">مقاييس اللغة</button>
     <button class="filter on" data-src="mufradat">المفردات</button>
     <button class="filter on" data-src="bushro">أوزبكي</button>
-  </div>
-
-  <div class="prewarm-bar" id="prewarmBar" hidden>
-    <div style="flex:1;min-width:0">
-      <div class="pw-msg" id="prewarmMsg"></div>
-      <div class="pw-bar"><div class="pw-fill" id="prewarmFill"></div></div>
-    </div>
-    <button class="pw-action" id="prewarmAction">حفظ</button>
-    <button class="pw-x" id="prewarmClose" aria-label="إغلاق">✕</button>
   </div>
 
   <div class="count" id="count"></div>
@@ -825,77 +806,28 @@ $("#decBtn").addEventListener("click", () => { scale = Math.max(scale - 0.1, 0.8
 applyScale();
 
 /* ============================================================
- * Offline pre-warm — download all Lisan chunks so the app works fully
- * offline once user opts in. SW caches every successful fetch.
+ * Offline pre-warm — silently download all Lisan chunks in the background
+ * after the first load so the app works fully offline. The SW caches every
+ * successful fetch; runs once (guarded by prewarm_done), and is skipped when
+ * the user has Data Saver turned on.
  * ============================================================ */
-const prewarmBar = $("#prewarmBar"),
-      prewarmMsg = $("#prewarmMsg"),
-      prewarmFill = $("#prewarmFill"),
-      prewarmAction = $("#prewarmAction"),
-      prewarmClose = $("#prewarmClose");
-
-function totalLisanMB() {
-  const totalKB = LISAN_CHUNKS.reduce((a, c) => a + (c.size_kb || 0), 0);
-  return Math.round(totalKB / 1024);
-}
-
-function setPrewarmIdle() {
-  prewarmMsg.textContent = "احفظ لسان العرب (" + arNum(totalLisanMB()) + " م.ب) للاستخدام بلا اتصال.";
-  prewarmFill.style.width = "0%";
-  prewarmAction.disabled = false;
-  prewarmAction.textContent = "حفظ";
-}
-
-function setPrewarmProgress(done, total) {
-  prewarmMsg.textContent = "جارٍ التنزيل: " + arNum(done) + " / " + arNum(total);
-  prewarmFill.style.width = Math.round(100 * done / total) + "%";
-  prewarmAction.disabled = true;
-  prewarmAction.textContent = "…";
-}
-
-function maybeShowPrewarm() {
+function backgroundPrefetchLisan() {
   if (localStorage.getItem("prewarm_done") === "1") return;
-  if (localStorage.getItem("prewarm_dismissed") === "1") return;
   if (!LISAN_CHUNKS.length) return;
-  setPrewarmIdle();
-  prewarmBar.hidden = false;
+  const conn = navigator.connection;
+  if (conn && conn.saveData) return;            // respect Data Saver
+  const CONCURRENCY = 3;                         // gentle, won't starve searches
+  let next = 0, ok = 0;
+  const worker = async () => {
+    while (next < LISAN_CHUNKS.length) {
+      const ch = LISAN_CHUNKS[next++];
+      try { const r = await fetch("data/lisan/" + ch.file); if (r && r.ok) ok++; }
+      catch (e) { /* offline — leave prewarm_done unset so it retries next visit */ }
+    }
+  };
+  Promise.all(Array.from({ length: CONCURRENCY }, worker))
+    .then(() => { if (ok === LISAN_CHUNKS.length) localStorage.setItem("prewarm_done", "1"); });
 }
-
-async function runPrewarm() {
-  const total = LISAN_CHUNKS.length;
-  let done = 0;
-  setPrewarmProgress(0, total);
-  // Sequential with small concurrency to avoid hammering the server
-  const CONCURRENCY = 4;
-  let next = 0;
-  const workers = [];
-  for (let w = 0; w < CONCURRENCY; w++) {
-    workers.push((async () => {
-      while (next < total) {
-        const i = next++;
-        const ch = LISAN_CHUNKS[i];
-        try {
-          await fetch("data/lisan/" + ch.file);
-        } catch (e) { /* SW will retry next time */ }
-        done++;
-        setPrewarmProgress(done, total);
-      }
-    })());
-  }
-  await Promise.all(workers);
-  localStorage.setItem("prewarm_done", "1");
-  prewarmMsg.textContent = "✓ محفوظ بلا اتصال.";
-  prewarmFill.style.width = "100%";
-  prewarmAction.disabled = true;
-  prewarmAction.textContent = "✓";
-  setTimeout(() => { prewarmBar.hidden = true; }, 2000);
-}
-
-prewarmAction.addEventListener("click", () => { runPrewarm().catch(() => {}); });
-prewarmClose.addEventListener("click", () => {
-  localStorage.setItem("prewarm_dismissed", "1");
-  prewarmBar.hidden = true;
-});
 
 /* ============================================================
  * Boot
@@ -912,7 +844,9 @@ if (bootMatch) {
 loadInitial().then(() => {
   dataReady = true;
   if (pendingQuery !== null) { const pq = pendingQuery; pendingQuery = null; doSearch(pq); }
-  maybeShowPrewarm();
+  // Prefetch all Lisan chunks in the background, once searches aren't urgent.
+  if ("requestIdleCallback" in window) requestIdleCallback(backgroundPrefetchLisan, { timeout: 4000 });
+  else setTimeout(backgroundPrefetchLisan, 3000);
 }).catch(() => { /* error already rendered by loadInitial */ });
 
 /* ============================================================
