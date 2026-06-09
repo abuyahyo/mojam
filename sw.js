@@ -10,13 +10,20 @@
  *                          freshest index.html; offline users get the cached
  *                          copy. This is the main defence against staleness.
  *   - Lisan chunks       : cache-first    — immutable once published, large
- *   - Other data JSON    : cache-first    — invalidated by VERSION bump
+ *   - Other data JSON    : cache-first    — kept under DATA_VERSION so routine
+ *                          shell deploys don't re-download the ~15 MB of data
  *   - Icons / manifest   : SWR            — refresh quietly in background
  */
-const VERSION = "v20260609090423";
+const VERSION = "v20260609091641";
+// Data files (maqayis/mufradat/bushro/lisan JSON) are immutable and large, so
+// they are cached under their OWN version — NOT the shell VERSION. The pre-commit
+// hook only bumps VERSION, so routine deploys (index.html/sw.js changes) keep the
+// ~15 MB of dictionary data cached instead of re-downloading it on every refresh.
+// Bump DATA_VERSION by hand only when the data/ files actually change.
+const DATA_VERSION = "v1";
 const SHELL_CACHE = "mojam-shell-" + VERSION;
-const DATA_CACHE  = "mojam-data-"  + VERSION;
-const LISAN_CACHE = "mojam-lisan-" + VERSION;
+const DATA_CACHE  = "mojam-data-"  + DATA_VERSION;
+const LISAN_CACHE = "mojam-lisan-" + DATA_VERSION;
 
 const PRECACHE = [
   "./",
