@@ -477,6 +477,9 @@ function styleParagraph(p, own, senses, bushroNum) {
  */
 const FN_REF_ONLY = /^\s*[«‹]\s*[0-9٠-٩]+\s*[»›]\s*$/;
 const STRAY_PUNCT_ONLY = /^\s*[.,،؛:؟!]+\s*$/;
+// Lisan's organisational dividers «[فصل الكاف]» / «[باب الميم]» (section by first
+// letter / chapter by last letter) leak into entries at boundaries — drop them.
+const STRUCT_HEAD = /^\s*\[\s*(?:فصل|باب)\s+[^\]]+\]\s*$/;
 
 /* A paragraph that opens with a Quran citation «[الأعراف/ 78]» belongs to the
  * آية quoted in the paragraph just above it — Mufradat prints the verse on its
@@ -609,7 +612,9 @@ function cardBody(text, own, src) {
   const paras = [];
   for (const p of rawParas) {
     if (!p.trim()) continue;
-    if (FN_REF_ONLY.test(p) && paras.length) {
+    if (!bushro && STRUCT_HEAD.test(p)) {
+      // organisational «[فصل …]» / «[باب …]» divider — not entry content
+    } else if (FN_REF_ONLY.test(p) && paras.length) {
       paras[paras.length - 1].refs.push(p.trim());
     } else if (STRAY_PUNCT_ONLY.test(p) && paras.length) {
       paras[paras.length - 1].text = paras[paras.length - 1].text.replace(/\s+$/, "") + p.trim();
