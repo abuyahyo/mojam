@@ -511,12 +511,12 @@ function styleParagraph(p, own, senses) {
 const FN_REF_ONLY = /^\s*[«‹]\s*[0-9٠-٩]+\s*[»›]\s*$/;
 const STRAY_PUNCT_ONLY = /^\s*[.,،؛:؟!]+\s*$/;
 
-/* Sense-marker styling is a Maqayis/Mufradat convention (root-meaning
- * enumeration). Lisan al-Arab uses و+ordinal narratively (lists of narrators,
- * poets, items), so applying it there produces false positives — keep it off
- * for any book other than maqayis/mufradat. */
+/* Sense-marker styling is a Maqayis convention (root-meaning enumeration:
+ * فالأول، والأصل الثاني …). Other books use و+ordinal narratively (lists of
+ * narrators, poets, items), so applying it there produces false positives —
+ * keep it on for maqayis only. */
 function cardBody(text, own, src) {
-  const senses = src === "maqayis" || src === "mufradat";
+  const senses = src === "maqayis";
   const rawParas = (senses ? markSenses(text) : text).split(/\n+/);
   const paras = [];
   for (const p of rawParas) {
