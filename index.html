@@ -710,7 +710,7 @@ async function hydrateLisanCards() {
 
 function renderByBook(groups, nq) {
   let html = "";
-  for (const src of ["maqayis", "mufradat", "bushro", "lisan"]) {
+  for (const src of ["bushro", "maqayis", "mufradat", "lisan"]) {
     if (!groups[src]) continue;
     const items = groups[src];
     html += '<div class="group-head" data-src="' + src + '">' + BOOKS[src].name +
