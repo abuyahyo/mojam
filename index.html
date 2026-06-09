@@ -630,26 +630,25 @@ function cardBody(text, own, src) {
   const blocks = [];
   let quranCtx = false;
   for (let i = 0; i < paras.length; i++) {
-    blocks.push(paras[i]);
     const tanzil = !bushro && isTanzilIntro(paras[i].text);
     const fihi = !bushro && !tanzil && quranCtx && isFihiIntro(paras[i].text);
-    if (tanzil || fihi) {
+    if ((tanzil || fihi) && i + 1 < paras.length) {
       quranCtx = true;
-      if (i + 1 < paras.length) {
-        let j = i + 1, txt = paras[j].text;
-        while (/\[/.test(txt) && !/\]/.test(txt) && j + 1 < paras.length) { j++; txt += " " + paras[j].text; }
-        const block = { text: txt, refs: paras[j].refs, ayah: /[ء-ي]/.test(txt) };
-        // A «؛ أي …» / «، …» gloss right after the آية explains it — keep it on
-        // the same line instead of orphaning it under the green verse.
-        if (block.ayah && j + 1 < paras.length && /^\s*(?:[؛،]|أَ?يْ?\s|أي\s)/.test(paras[j + 1].text)) {
-          block.gloss = paras[j + 1].text.trim();
-          j++;
-        }
-        blocks.push(block);
-        i = j;
+      let j = i + 1, txt = paras[j].text;
+      while (/\[/.test(txt) && !/\]/.test(txt) && j + 1 < paras.length) { j++; txt += " " + paras[j].text; }
+      // Keep the «وفي التنزيل:» / «وفيه:» intro on the same line as its آية.
+      const block = { text: txt, refs: paras[j].refs, ayah: /[ء-ي]/.test(txt), lead: paras[i].text.trim() };
+      // A «؛ أي …» / «، …» gloss right after the آية explains it — keep it on
+      // the same line instead of orphaning it under the green verse.
+      if (block.ayah && j + 1 < paras.length && /^\s*(?:[؛،]|أَ?يْ?\s|أي\s)/.test(paras[j + 1].text)) {
+        block.gloss = paras[j + 1].text.trim();
+        j++;
       }
+      blocks.push(block);
+      i = j;
     } else {
-      quranCtx = false;
+      blocks.push(paras[i]);
+      quranCtx = tanzil || fihi;
     }
   }
 
@@ -676,15 +675,16 @@ function cardBody(text, own, src) {
   // so drop them — along with their inline «N» reference markers — for a clean
   // read. Āyāt, verses and Bushro morphology stay.
   let mainHtml = "", morphHtml = "";
-  for (const { text: p, ayah, gloss } of flowed) {
+  for (const { text: p, ayah, gloss, lead } of flowed) {
     if (bushro && MORPH_HEAD.test(p)) {
       const fmt = formatBushroMorph(p);
       morphHtml += '<p class="para morph">' + (fmt || esc(p)) + '</p>';
       continue;
     }
     if (ayah) {
+      const head = lead ? esc(lead) + " " : "";
       const tail = gloss ? (/^[؛،]/.test(gloss) ? "" : " ") + esc(gloss) : "";
-      mainHtml += '<p class="para"><span class="ayah">﴿' + esc(cleanAyah(p)) + '﴾</span>' + tail + '</p>';
+      mainHtml += '<p class="para">' + head + '<span class="ayah">﴿' + esc(cleanAyah(p)) + '﴾</span>' + tail + '</p>';
       continue;
     }
     if (FOOTNOTE_HEAD.test(p)) continue;            // drop editor footnotes
