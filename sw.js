@@ -14,7 +14,7 @@
  *                          shell deploys don't re-download the ~15 MB of data
  *   - Icons / manifest   : SWR            — refresh quietly in background
  */
-const VERSION = "v20260609184857";
+const VERSION = "v20260609190338";
 // Data files (maqayis/mufradat/bushro/lisan JSON) are immutable and large, so
 // they are cached under their OWN version — NOT the shell VERSION. The pre-commit
 // hook only bumps VERSION, so routine deploys (index.html/sw.js changes) keep the
