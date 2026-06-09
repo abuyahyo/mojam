@@ -539,6 +539,10 @@ const VERSE_RE = new RegExp("^\\s*" + VERSE_SIDE + "*[ء-ي]" + VERSE_SIDE + "*(
  * form, so drop a lone trailing Roman numeral — optionally with a «-N» sense
  * suffix (e.g. «II-1», «IV-2»). */
 const BUSHRO_FORM_TAIL = /\n+[ \t]*(?:IV|IX|X|VI{0,3}|I{1,3})(?:-\d{1,2})?[ \t]*$/;
+/* Homographs of one spelling are stored as separate Bushro records, each tagged
+ * with its index as a lone trailing number («… doimiy\n\n1», «… mevalari\n\n2»).
+ * The card already shows the headword, so this dangling digit is noise — drop it. */
+const BUSHRO_HOMOGRAPH_TAIL = /\n+[ \t]*\d{1,2}[ \t]*$/;
 
 /* Bushro Uzbek entries pack several numbered senses on one line, e.g.
  * «1) urmoq …; 2) urmoq (yurak haqida); 3) termoq …». Break each «N)» onto its
@@ -661,7 +665,7 @@ function expandBushroAbbr(t) {
 
 function cardBody(text, own, src, head) {
   const bushro = src === "bushro";
-  if (bushro) text = markBushroSenses(text.replace(BUSHRO_FORM_TAIL, ""));
+  if (bushro) text = markBushroSenses(text.replace(BUSHRO_HOMOGRAPH_TAIL, "").replace(BUSHRO_FORM_TAIL, ""));
   // Maqayis/Lisan brackets poetry and citations with «*»; the markers carry no
   // reading value, so drop them (Bushro's «*» is its idiom marker, handled above).
   else text = text.replace(/[ \t]*\*[ \t]*/g, " ");
