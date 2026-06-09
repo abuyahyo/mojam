@@ -641,12 +641,12 @@ function cardBody(text, own, src) {
     }
   }
 
-  // Lisan's source is split into many sub-sentence fragments («وَيُقَالُ:» on its
-  // own line, then the gloss on the next), which reads choppily. Reflow plain
-  // fragments into one paragraph per sentence (break on . ؟ !), while آيات,
+  // Lisan and Mufradat split their source into sub-sentence fragments («وَيُقَالُ:»
+  // / «وجمعه:» on one line, the gloss on the next), which reads choppily. Reflow
+  // plain fragments into one paragraph per sentence (break on . ؟ !), while آيات,
   // أبيات and footnotes stay as their own blocks.
   let flowed = blocks;
-  if (src === "lisan") {
+  if (src === "lisan" || src === "mufradat") {
     flowed = [];
     let buf = null;
     const flush = () => { if (buf) { flowed.push(buf); buf = null; } };
