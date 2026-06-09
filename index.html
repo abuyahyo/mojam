@@ -545,13 +545,16 @@ const styleBushroNum = s => s.replace(BUSHRO_SENSE_NUM, '<span class="sense-num"
  * Arabic line (e.g. «I-а-بَحْثٌ» → «مصدر: بَحْثٌ»). */
 const MORPH_LABELS = { "ko'p.": "جمع", "ko'p": "جمع", "ikk.": "مثنى", "ikk": "مثنى", "muan.": "مؤنث", "muan": "مؤنث", "qar.": "انظر", "qar": "انظر" };
 const MORPH_ROMAN = /^(?:I{1,3}|IV|VI{0,3}|IX|X)$/;
-const MORPH_HEAD = /^(?:(?:I{1,3}|IV|VI{0,3}|IX|X)-|ko'p\.?-|ikk\.?-|muan\.?-|qar\.?-)/;
+const MORPH_HEAD = /^(?:\d{1,2}-)?(?:(?:I{1,3}|IV|VI{0,3}|IX|X)-|ko'p\.?-|ikk\.?-|muan\.?-|qar\.?-)/;
 function formatBushroMorph(seg) {
   const tokens = seg.split("-").map(t => t.trim()).filter(Boolean);
   if (!tokens.length) return null;
   const groups = [];
-  let cur = null, started = false, i = 0;
-  if (MORPH_ROMAN.test(tokens[0])) { cur = { label: "مصدر", values: [] }; groups.push(cur); started = true; i = 1; }
+  let cur = null, started = false, i = 0, sensePrefix = "";
+  // A leading «N-» ties this form to sense N (e.g. بيت: «2-ko'p.-أبيات» = the
+  // plural for sense 2 is أبيات); show it as «٢) » before the labels.
+  if (/^\d{1,2}$/.test(tokens[0])) { sensePrefix = arNum(tokens[0]) + ") "; i = 1; }
+  if (i < tokens.length && MORPH_ROMAN.test(tokens[i])) { cur = { label: "مصدر", values: [] }; groups.push(cur); started = true; i++; }
   for (; i < tokens.length; i++) {
     const tok = tokens[i], lab = MORPH_LABELS[tok];
     if (lab) { if (!cur || cur.label !== lab) { cur = { label: lab, values: [] }; groups.push(cur); } started = true; }
@@ -561,7 +564,7 @@ function formatBushroMorph(seg) {
   if (!started) return null;
   const parts = groups.filter(g => g.values.length)
     .map(g => '<span class="morph-l">' + g.label + ':</span> ' + g.values.join("، "));
-  return parts.length ? parts.join(" · ") : null;
+  return parts.length ? sensePrefix + parts.join(" · ") : null;
 }
 
 /* Bushro uses terse dictionary abbreviations: verb rection (n.gadir, k.nidir …
