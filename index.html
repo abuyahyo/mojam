@@ -531,12 +531,15 @@ const BUSHRO_FORM_TAIL = /\n+[ \t]*(?:IV|IX|X|VI{0,3}|I{1,3})(?:-\d{1,2})?[ \t]*
  * footnote refs like «(1990)» are left alone) and bold the number so the
  * reader can scan the meanings. */
 const markBushroSenses = t => t
+  // idiom/expression marker «*» (« قوّم عياله » …) — put the idioms on their own
+  // line led by a «◆» bullet instead of a cryptic inline asterisk.
+  .replace(/[ \t]*\*[ \t]*/g, "\n\n◆ ")
   // homograph headers «1.» «2.» that introduce a sub-entry (a «N)» sense follows)
   // — put each on its own line so «2.» doesn't dangle at the end of a sense.
   .replace(/(^|[;.])\s*(\d{1,2}\.)\s+(?=\d{1,2}\))/g, (_m, sep, num) => (sep === "" ? "" : sep) + "\n\n" + num + "\n\n")
   // numbered senses «N)»
   .replace(/(^|[;.])[ \t]*(\d{1,2}\))/g, (_m, sep, num) => (sep === "" ? "" : sep + "\n\n") + num);
-const BUSHRO_SENSE_NUM = /^(\d{1,2}[).])/;
+const BUSHRO_SENSE_NUM = /^(\d{1,2}[).]|◆)/;
 const styleBushroNum = s => s.replace(BUSHRO_SENSE_NUM, '<span class="sense-num">$1</span>');
 
 /* Bushro entries end with cryptic morphology metadata the source crams onto a
