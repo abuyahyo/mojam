@@ -95,6 +95,7 @@
   .body .sense-num{color:#7c2d12;font-weight:700}
   .body .para.morph{font-size:.9em;color:var(--ink-soft);border-top:1px dashed var(--line);margin-top:10px;padding-top:8px;line-height:1.8}
   .body .morph-l{font-weight:600;color:var(--accent)}
+  .body .para.verse{text-align:center;font-style:italic;font-size:.95em;color:var(--ink-soft);line-height:2.05;margin:.7em 0}
   .body a.xref{color:var(--accent-bright);cursor:pointer;border-bottom:1px dashed var(--accent-bright);text-decoration:none}
   .body .para.footnote{font-size:.86em;color:var(--ink-soft);background:rgba(216,201,166,.20);border-right:3px solid var(--gold);padding:7px 12px;margin:8px 0;border-radius:6px;line-height:1.75}
   .body .fnref{display:inline-block;font-size:.72em;color:var(--ink-soft);vertical-align:super;line-height:1;margin:0 .15em;opacity:.7}
@@ -520,6 +521,13 @@ function styleParagraph(p, own, senses, bushroNum) {
 const FN_REF_ONLY = /^\s*[«‹]\s*[0-9٠-٩]+\s*[»›]\s*$/;
 const STRAY_PUNCT_ONLY = /^\s*[.,،؛:؟!]+\s*$/;
 
+/* A poetry line (بيت): a whole paragraph made only of Arabic text and light
+ * punctuation, with the two hemistichs (صدر … عجز) split by a central ellipsis
+ * — «…» in Maqayis/Lisan, «...» in Mufradat. Requiring the entire paragraph to
+ * match (Arabic on both sides, no sentence period) keeps prose out. */
+const VERSE_SIDE = "[ء-ي\\u064B-\\u065F\\u0670\\u0640«»‹›()\\[\\]\\s،؛,0-9٠-٩]";
+const VERSE_RE = new RegExp("^\\s*" + VERSE_SIDE + "*[ء-ي]" + VERSE_SIDE + "*(?:…|\\.{3,})" + VERSE_SIDE + "*[ء-ي]" + VERSE_SIDE + "*\\s*$");
+
 /* Sense-marker styling is a Maqayis convention (root-meaning enumeration:
  * فالأول، والأصل الثاني …). Other books use و+ordinal narratively (lists of
  * narrators, poets, items), so applying it there produces false positives —
@@ -594,8 +602,9 @@ function cardBody(text, own, src) {
       continue;
     }
     const isFootnote = FOOTNOTE_HEAD.test(p);
+    const isVerse = !bushro && !isFootnote && VERSE_RE.test(p);
     const stripped = isFootnote ? p.replace(/^\s*[—–-]\s+/, "") : p;
-    const cls = "para" + (isFootnote ? " footnote" : "");
+    const cls = "para" + (isFootnote ? " footnote" : "") + (isVerse ? " verse" : "");
     const refsHtml = refs.map(r =>
       ' <span class="fnref">' + esc(r) + '</span>'
     ).join("");
