@@ -450,12 +450,13 @@ function markSenses(text) {
 const SENSE_WRAP_RE = new RegExp("^(" + SENSE_MARKER_BODY + ")" + SENSE_NO_LETTER);
 const styleSenses = s => s.replace(SENSE_WRAP_RE, '<span class="sense">$1</span>');
 
-/* Editor's footnotes (محقّق notes) appear inline between sentences:
- *   "main text...\n— (١) فى اللسان (صحب): ...\nmain text continues..."
- * Each "— (N) ..." line is rendered as a muted inline-styled paragraph so
- * the eye can skip past it. Both books are split on one-or-more newlines
- * (Maqayis uses single \n; Mufradat uses \n\n). */
-const FOOTNOTE_HEAD = /^\s*[—–-]\s*\(\s*[0-9٠-٩]+\s*\)/;
+/* Editor's footnotes (محقّق notes) appear inline between sentences. Two formats:
+ *   Maqayis:  "— (١) فى اللسان (صحب): ..."   (em-dash + parenthesised number)
+ *   Lisan:    "(١). قوله [كذا] كذا بالنسخ ..." (bare parenthesised number + dot)
+ * Each is rendered as a muted paragraph and collected at the foot of the entry.
+ * The dashless form requires a trailing dot so a stray «(٤)» isn't mistaken for
+ * a footnote. */
+const FOOTNOTE_HEAD = /^\s*(?:[—–-]\s*\(\s*[0-9٠-٩]+\s*\)|\(\s*[0-9٠-٩]+\s*\)\s*\.)/;
 
 function styleParagraph(p, own, senses, bushroNum) {
   let s = esc(p);
