@@ -486,6 +486,19 @@ const AYAH_CIT_LEAD = /^\s*\[[^\[\]]*\/\s*[0-9٠-٩][^\[\]]*\]/;
 const isAyahCandidate = t =>
   /[ء-ي]/.test(t) && t.replace(/\s/g, "").length <= 170 && !AYAH_CIT_ANY.test(t) && !FOOTNOTE_HEAD.test(t);
 
+/* Lisan introduces a Quranic citation with the classic formula «وفي التنزيل»
+ * / «وفي التنزيل العزيز» (التنزيل = the Qur'an), then prints the آية on the next
+ * paragraph — bracketed «[…]», bare, or ended with a «*» marker. Detect that
+ * intro (diacritic-insensitive) and clean the verse for green rendering. */
+const isTanzilIntro = t => {
+  const n = normalize(t);
+  return n.endsWith("وفي التنزيل:") || n.endsWith("وفي التنزيل العزيز:");
+};
+const cleanAyah = t => t.trim()
+  .replace(/[\[\]]/g, "")                          // citation brackets
+  .replace(/\*/g, "")                              // Qur'an «*» marker
+  .replace(/^[\s،؛]+|[\s.،؛]+$/g, "").trim();      // trim stray edge punctuation
+
 /* A poetry line (بيت): a whole paragraph made only of Arabic text and light
  * punctuation, with the two hemistichs (صدر … عجز) split by a central ellipsis
  * — «…» in Maqayis/Lisan, «...» in Mufradat. Requiring the entire paragraph to
@@ -557,15 +570,32 @@ function cardBody(text, own, src) {
       paras.push({ text: p, refs: [] });
     }
   }
+  // Tag the آية that follows a «وفي التنزيل» intro (Lisan). The verse sits on
+  // the next paragraph(s); if a bracket stays open, absorb continuations until
+  // it closes so a verse split across lines is coloured as one.
+  const blocks = [];
+  for (let i = 0; i < paras.length; i++) {
+    blocks.push(paras[i]);
+    if (bushro || i + 1 >= paras.length || !isTanzilIntro(paras[i].text)) continue;
+    let j = i + 1, txt = paras[j].text;
+    while (/\[/.test(txt) && !/\]/.test(txt) && j + 1 < paras.length) { j++; txt += " " + paras[j].text; }
+    blocks.push({ text: txt, refs: paras[j].refs, ayah: /[ء-ي]/.test(txt) });
+    i = j;
+  }
+
   // Editor footnotes (محقّق notes) are page-bottom notes the scraper dropped
   // mid-text, so they can land between the opening definition and the body.
   // Collect them and render them together at the end of the entry, keeping the
   // reading flow uninterrupted while preserving their order.
   let mainHtml = "", noteHtml = "", morphHtml = "";
-  for (const { text: p, refs } of paras) {
+  for (const { text: p, refs, ayah } of blocks) {
     if (bushro && MORPH_HEAD.test(p)) {
       const fmt = formatBushroMorph(p);
       morphHtml += '<p class="para morph">' + (fmt || esc(p)) + '</p>';
+      continue;
+    }
+    if (ayah) {
+      mainHtml += '<p class="para"><span class="ayah">﴿' + esc(cleanAyah(p)) + '﴾</span></p>';
       continue;
     }
     const isFootnote = FOOTNOTE_HEAD.test(p);
