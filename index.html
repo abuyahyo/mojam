@@ -659,12 +659,12 @@ function cardBody(text, own, src) {
     flush();
   }
 
-  // Editor footnotes (محقّق notes) are page-bottom notes the scraper dropped
-  // mid-text, so they can land between the opening definition and the body.
-  // Collect them and render them together at the end of the entry, keeping the
-  // reading flow uninterrupted while preserving their order.
-  let mainHtml = "", noteHtml = "", morphHtml = "";
-  for (const { text: p, refs, ayah } of flowed) {
+  // Editor footnotes (محقّق notes) are source citations / cross-references
+  // («(N) ديوان زهير …»). They are scholarly apparatus, not dictionary content,
+  // so drop them — along with their inline «N» reference markers — for a clean
+  // read. Āyāt, verses and Bushro morphology stay.
+  let mainHtml = "", morphHtml = "";
+  for (const { text: p, ayah } of flowed) {
     if (bushro && MORPH_HEAD.test(p)) {
       const fmt = formatBushroMorph(p);
       morphHtml += '<p class="para morph">' + (fmt || esc(p)) + '</p>';
@@ -674,17 +674,13 @@ function cardBody(text, own, src) {
       mainHtml += '<p class="para"><span class="ayah">﴿' + esc(cleanAyah(p)) + '﴾</span></p>';
       continue;
     }
-    const isFootnote = FOOTNOTE_HEAD.test(p);
-    const isVerse = !bushro && !isFootnote && VERSE_RE.test(p);
-    const stripped = bushro ? expandBushroAbbr(p) : (isFootnote ? p.replace(/^\s*[—–-]\s+/, "") : p);
-    const cls = "para" + (isFootnote ? " footnote" : "") + (isVerse ? " verse" : "");
-    const refsHtml = refs.map(r =>
-      ' <span class="fnref">' + esc(r) + '</span>'
-    ).join("");
-    const html = '<p class="' + cls + '">' + styleParagraph(stripped, own, senses, bushro) + refsHtml + '</p>';
-    if (isFootnote) noteHtml += html; else mainHtml += html;
+    if (FOOTNOTE_HEAD.test(p)) continue;            // drop editor footnotes
+    const isVerse = !bushro && VERSE_RE.test(p);
+    const stripped = bushro ? expandBushroAbbr(p) : p;
+    const cls = "para" + (isVerse ? " verse" : "");
+    mainHtml += '<p class="' + cls + '">' + styleParagraph(stripped, own, senses, bushro) + '</p>';
   }
-  return mainHtml + noteHtml + morphHtml;
+  return mainHtml + morphHtml;
 }
 
 function cardHTML_dict(e, nq, extraClass) {

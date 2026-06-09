@@ -40,9 +40,10 @@ paragraphs and each is classified/transformed. Source-specific behaviour:
   Lisan's `وفي التنزيل[ العزيز]:` intro and its anaphoric `وفيه:` continuations
   (tracked via a Qur'ān-context flag so a `وفيه` pointing at a hadith is left
   alone).
-- **Editor footnotes (محقّق)** — two formats: Maqayis `— (N) …` (em-dash) and
-  Lisan `(N). …` (bare, dot required). Detected by `FOOTNOTE_HEAD`, collected
-  and rendered together at the **foot** of the entry.
+- **Editor footnotes (محقّق)** — source citations / cross-references in two
+  formats: Maqayis `— (N) …` (em-dash) and Lisan `(N). …` (bare, dot required).
+  Detected by `FOOTNOTE_HEAD` and **dropped** (with their inline `«N»` reference
+  markers) — scholarly apparatus, not dictionary content.
 - **Lisan reflow** — Lisan's source is split into sub-sentence fragments;
   consecutive plain fragments are merged into one paragraph per sentence
   (break on `. ؟ !`), keeping āyāt/verses/footnotes as their own blocks.
