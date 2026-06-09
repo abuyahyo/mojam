@@ -676,7 +676,11 @@ function cardBody(text, own, src) {
     }
     if (FOOTNOTE_HEAD.test(p)) continue;            // drop editor footnotes
     const isVerse = !bushro && VERSE_RE.test(p);
-    const stripped = bushro ? expandBushroAbbr(p) : p;
+    // Drop the now-orphan «(N)» footnote-reference markers (the footnotes they
+    // pointed at are gone). Done after the footnote check so «— (N)…»/«(N).…»
+    // heads are still recognised; «(N): page» refs (with a colon) are kept.
+    const stripped = bushro ? expandBushroAbbr(p)
+      : p.replace(/[ \t]*\(\s*[0-9٠-٩]+\s*\)/g, "").replace(/[ \t]{2,}/g, " ").replace(/[ \t]+([.،؛؟!])/g, "$1");
     const cls = "para" + (isVerse ? " verse" : "");
     mainHtml += '<p class="' + cls + '">' + styleParagraph(stripped, own, senses, bushro) + '</p>';
   }
