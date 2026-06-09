@@ -13,7 +13,7 @@
  *   - Other data JSON    : cache-first    — invalidated by VERSION bump
  *   - Icons / manifest   : SWR            — refresh quietly in background
  */
-const VERSION = "v20260609074910";
+const VERSION = "v20260609075458";
 const SHELL_CACHE = "mojam-shell-" + VERSION;
 const DATA_CACHE  = "mojam-data-"  + VERSION;
 const LISAN_CACHE = "mojam-lisan-" + VERSION;
