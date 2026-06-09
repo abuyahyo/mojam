@@ -181,8 +181,8 @@ const BOOKS = {
   lisan:    { name: "لسان العرب",    color: "#7c2d12", dataUrl: null /* lazy */ },
   maqayis:  { name: "مقاييس اللغة",  color: "#1d4e2c", dataUrl: "data/maqayis.json" },
   mufradat: { name: "المفردات",      color: "#6b3e94", dataUrl: "data/mufradat.json" },
-  bushro:    { name: "بشرى",         color: "#0e6b6b", dataUrl: "data/bushro.json",    optional: true },
-  bushro_uz: { name: "بشرى",         color: "#0e6b6b", dataUrl: "data/bushro_uz.json", optional: true },
+  bushro:    { name: "أوزبكي",         color: "#0e6b6b", dataUrl: "data/bushro.json",    optional: true },
+  bushro_uz: { name: "أوزبكي",         color: "#0e6b6b", dataUrl: "data/bushro_uz.json", optional: true },
 };
 const LISAN_ROOTS_URL = "data/lisan/roots.json";
 const LISAN_CHUNKS_URL = "data/lisan/chunks.json";
@@ -271,13 +271,13 @@ function addBushroUI() {
   const chip = document.createElement("button");
   chip.className = "filter on";
   chip.dataset.src = "bushro";
-  chip.textContent = "بشرى";
+  chip.textContent = "أوزبكي";
   filtersEl.appendChild(chip);
   // Reflect the 4th book in the header (stays "الثلاثة" when bushro is absent).
   const h1 = document.querySelector("header.site h1");
   if (h1) h1.textContent = "المعاجم الأربعة";
   const sub = document.querySelector("header.site .sub");
-  if (sub) sub.textContent += " · بشرى (عربي–أوزبكي)";
+  if (sub) sub.textContent += " · أوزبكي (عربي–أوزبكي)";
   document.title = "المعاجم الأربعة";
 }
 
