@@ -520,7 +520,14 @@ const STRAY_PUNCT_ONLY = /^\s*[.,،؛:؟!]+\s*$/;
  * فالأول، والأصل الثاني …). Other books use و+ordinal narratively (lists of
  * narrators, poets, items), so applying it there produces false positives —
  * keep it on for maqayis only. */
+/* Bushro entries carry a trailing Arabic verb-form number (Roman numeral
+ * I–X) left dangling by the source scraper, e.g. «… astar solmoq;\n\nII».
+ * It has no content of its own and the vocalised headword already shows the
+ * form, so drop a lone trailing Roman numeral. */
+const BUSHRO_FORM_TAIL = /\n+[ \t]*(?:IV|IX|X|VI{0,3}|I{1,3})[ \t]*$/;
+
 function cardBody(text, own, src) {
+  if (src === "bushro") text = text.replace(BUSHRO_FORM_TAIL, "");
   const senses = src === "maqayis";
   const rawParas = (senses ? markSenses(text) : text).split(/\n+/);
   const paras = [];
