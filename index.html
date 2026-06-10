@@ -771,6 +771,24 @@ function cardBody(text, own, src, head) {
               gt = gt.slice(0, cut).trim();
             }
           }
+          // A محقّق footnote can split a gloss mid-phrase («؛ أَراد من» | footnote |
+          // «أهل ملّتكم، …»). If the gloss ends without a sentence stop, pull its
+          // completion across the footnote — up to the next stop or a new «، و» clause.
+          else if (!/[.؟!؛]\s*$/.test(gt)) {
+            let c = g + 1;
+            while (c < paras.length && FOOTNOTE_HEAD.test(paras[c].text)) c++;
+            if (c > g + 1 && c < paras.length && /^\s*[ء-ي]/.test(paras[c].text)) {
+              const cont = paras[c].text.trim();
+              const stop = cont.match(/[.؟!؛]/), clause = cont.match(/،\s*(?=و)/);
+              let cut, restAt;
+              if (clause && (!stop || clause.index < stop.index)) { cut = clause.index; restAt = clause.index + 1; }
+              else if (stop) { cut = stop.index + 1; restAt = stop.index + 1; }
+              else { cut = cont.length; restAt = cont.length; }
+              gt = (gt + " " + cont.slice(0, cut).trim()).trim();
+              const rest = cont.slice(restAt).replace(/^[،\s]+/, "").trim();
+              if (rest) { paras[c].text = rest; g = c - 1; } else { g = c; }
+            }
+          }
           block.gloss = gt;
           j = g;
         }
