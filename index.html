@@ -518,11 +518,22 @@ const isFihiIntro = t => {
  * insensitive) so the following text can be coloured like آيات are greened.
  * Kept short and anchored to an opening «في/جاء/روي/ومنه …» so prose that merely
  * mentions «الحديث» mid-sentence isn't mistaken for an intro. */
+/* Lisan cites Prophetic traditions the same way it cites the Qur'an: an intro
+ * formula «وفي الحديث:» / «وفي حديث فلان:» / «وجاء في الخبر:» on its own line,
+ * then the hadith text on the next paragraph. It also attributes a saying with
+ * the blessing formula «… صلى الله عليه وسلم:» / a prophet's «… عليه السلام:»,
+ * likewise followed by the tradition. Detect the intro (diacritic-insensitive)
+ * so the following text can be coloured like آيات are greened. Kept short and
+ * anchored so prose that merely mentions «الحديث»/the blessing isn't mistaken. */
 const isHadithIntro = t => {
   const n = normalize(t);
-  return n.length <= 70 && n.endsWith(":")
-      && /^(?:و?في|و?جاء|و?روي|ويروي|ومنه|ومنها|وجاءت|وروينا) /.test(n)
-      && /(?:^| )(?:ال)?(?:حديث|خبر)/.test(n);
+  if (n.length > 70 || !n.endsWith(":")) return false;
+  // explicit «(و)في الحديث/خبر …:» citation
+  if (/^(?:و?في|و?جاء|و?روي|ويروي|ومنه|ومنها|وجاءت|وروينا) /.test(n)
+      && /(?:^| )(?:ال)?(?:حديث|خبر)/.test(n)) return true;
+  // «… صلى الله عليه [وآله] وسلم:» / «… عليه [أفضل] [الصلاة و]السلام:» — a saying
+  // attributed to the Prophet (or a prophet), with the formula right before «:».
+  return /(?:صلي الله عليه(?: واله)?(?: وصحبه)? وسلم|عليه (?:افضل )?(?:الصلاه و)?السلام)\s*:$/.test(n);
 };
 const cleanAyah = t => t.trim()
   .replace(/[\[\]]/g, "")                          // citation brackets
