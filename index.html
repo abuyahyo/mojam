@@ -491,12 +491,19 @@ const isAyahCandidate = t =>
   /[ء-ي]/.test(t) && t.replace(/\s/g, "").length <= 170 && !AYAH_CIT_ANY.test(t) && !FOOTNOTE_HEAD.test(t);
 
 /* Lisan introduces a Quranic citation with the classic formula «وفي التنزيل»
- * / «وفي التنزيل العزيز» (التنزيل = the Qur'an), then prints the آية on the next
- * paragraph — bracketed «[…]», bare, or ended with a «*» marker. Detect that
- * intro (diacritic-insensitive) and clean the verse for green rendering. */
+ * / «وفي التنزيل العزيز» (التنزيل = the Qur'an), or with a divine-speech formula
+ * «(و)قال [الله] تعالى/عز وجل:» / «… في قوله تعالى:» (تعالى and «عز وجل» name only
+ * God), then prints the آية on the next paragraph — bracketed «[…]», bare, or
+ * ended with a «*» marker. Detect that intro (diacritic-insensitive) and clean
+ * the verse for green rendering. */
 const isTanzilIntro = t => {
   const n = normalize(t);
-  return n.endsWith("وفي التنزيل:") || n.endsWith("وفي التنزيل العزيز:");
+  if (n.endsWith("وفي التنزيل:") || n.endsWith("وفي التنزيل العزيز:")) return true;
+  // «قال/قوله … تعالى/عز وجل:» — a Qur'an quotation. Kept short and «:»-terminated
+  // so a long sentence merely mentioning God isn't taken as an intro; «عز وجل» is
+  // matched whole so a bare «جل» in رجل/العجلي (a man / a poet's nisba) can't hit.
+  return n.endsWith(":") && n.length <= 45
+      && (n.includes("قال") || n.includes("قوله")) && (n.includes("تعالي") || n.includes("عز وجل"));
 };
 /* «وفيه[ أيضاً]:» ("and in it") is anaphoric — after a التنزيل citation it means
  * "and in the Qur'an", introducing a further آية. Only treat it as a Qur'an
