@@ -615,9 +615,11 @@ const styleBushroNum = s => s.replace(BUSHRO_SENSE_NUM, '<span class="sense-num"
  * vowel introduces the مصدر, and the abbreviations ko'p./ikk./muan./qar. label
  * the plural/dual/feminine/cross-reference. Reformat it into a readable, labeled
  * Arabic line (e.g. «I-а-بَحْثٌ» → «مصدر: بَحْثٌ»). */
-const MORPH_LABELS = { "ko'p.": "جمع", "ko'p": "جمع", "ikk.": "مثنى", "ikk": "مثنى", "muan.": "مؤنث", "muan": "مؤنث", "qar.": "انظر", "qar": "انظر" };
+// A bare «,» in the tail introduces an alternative spelling of the headword
+// («آبَنُوسٌ … ,-أَبْنُوسٌ» = also written أَبْنُوسٌ) — label it «أو» (or).
+const MORPH_LABELS = { "ko'p.": "جمع", "ko'p": "جمع", "ikk.": "مثنى", "ikk": "مثنى", "muan.": "مؤنث", "muan": "مؤنث", "qar.": "انظر", "qar": "انظر", ",": "أو" };
 const MORPH_ROMAN = /^(?:I{1,3}|IV|VI{0,3}|IX|X)$/;
-const MORPH_HEAD = /^(?:\d{1,2}-)?(?:(?:I{1,3}|IV|VI{0,3}|IX|X)-|ko'p\.?-|ikk\.?-|muan\.?-|qar\.?-)/;
+const MORPH_HEAD = /^(?:\d{1,2}-\s*)?(?:(?:I{1,3}|IV|VI{0,3}|IX|X)-|ko'p\.?-|ikk\.?-|muan\.?-|qar\.?-|,-)/;
 const HARAKAT = "ًٌٍَُِّْ";
 /* The source often records the sound feminine plural as a bare ending «اتٌ»
  * with the stem dropped (إِدَارَةٌ → «اتٌ»). Rebuild the full word from the
