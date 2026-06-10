@@ -740,7 +740,22 @@ function cardBody(text, own, src, head) {
         let g = j + 1;
         while (g < paras.length && FOOTNOTE_HEAD.test(paras[g].text)) g++;
         if (g < paras.length && /^\s*(?:[؛،]|أَ?يْ?\s|أي\s)/.test(paras[g].text)) {
-          block.gloss = paras[g].text.trim();
+          let gt = paras[g].text.trim();
+          // The gloss sometimes swallows the start of the NEXT citation, e.g.
+          // «… لصحبتهم. وفي حديث آخر قاله،» before a «صلى الله عليه وسلم:» intro.
+          // If the gloss ends mid-clause («،») and that trailing clause (after the
+          // last sentence stop) is itself an intro lead-in to the following intro
+          // paragraph, hand it over so the next hadith isn't stranded.
+          const stops = [...gt.matchAll(/[.؟!]\s+/g)];
+          if (stops.length && /،\s*$/.test(gt) && g + 1 < paras.length
+              && (isHadithIntro(paras[g + 1].text) || isTanzilIntro(paras[g + 1].text))) {
+            const cut = stops[stops.length - 1].index + stops[stops.length - 1][0].length;
+            if (/^(?:و?في|و?قال|و?قوله|و?جاء|و?رو[يى]|ومنه)/.test(normalize(gt.slice(cut)))) {
+              paras[g + 1].text = gt.slice(cut).trim() + " " + paras[g + 1].text.trim();
+              gt = gt.slice(0, cut).trim();
+            }
+          }
+          block.gloss = gt;
           j = g;
         }
       }
