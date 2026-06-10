@@ -546,6 +546,16 @@ const cleanAyah = t => t.trim()
  * match (Arabic on both sides, no sentence period) keeps prose out. */
 const VERSE_SIDE = "[ء-ي\\u064B-\\u065F\\u0670\\u0640«»‹›()\\[\\]\\s،؛,0-9٠-٩]";
 const VERSE_RE = new RegExp("^\\s*" + VERSE_SIDE + "*[ء-ي]" + VERSE_SIDE + "*(?:…|\\.{3,})" + VERSE_SIDE + "*[ء-ي]" + VERSE_SIDE + "*\\s*$");
+/* Mufradat (and the others) often quote a single hemistich that the two-hemistich
+ * VERSE_RE can't catch, but always after an explicit poet citation ending in
+ * «… (قال/قول) الشاعر:» / «الراجز:» / «أنشد …:». Detect that intro so the verse
+ * line that follows can be centred like a بيت. */
+const POETRY_INTRO = t => {
+  const n = normalize(t);
+  return n.endsWith(":") &&
+    (/(?:ال)?(?:شاعر|راجز|شعراء)(?:\s+(?:بقوله|فقال|يقول))?:$/.test(n)
+      || /(?:^|\s)و?انشد(?:\s+\S+){0,2}:$/.test(n));
+};
 
 /* Sense-marker styling is a Maqayis convention (root-meaning enumeration:
  * فالأول، والأصل الثاني …). Other books use و+ordinal narratively (lists of
@@ -783,14 +793,27 @@ function cardBody(text, own, src, head) {
   let flowed = blocks;
   if (src !== "bushro") {
     flowed = [];
-    let buf = null;
+    let buf = null, expectVerse = false;
     const flush = () => { if (buf) { flowed.push(buf); buf = null; } };
     for (const b of blocks) {
-      if (b.ayah || b.hadith || FOOTNOTE_HEAD.test(b.text) || VERSE_RE.test(b.text)) { flush(); flowed.push(b); continue; }
+      if (b.ayah || b.hadith || FOOTNOTE_HEAD.test(b.text) || VERSE_RE.test(b.text)) { flush(); flowed.push(b); expectVerse = false; continue; }
+      // The line right after a poet citation («… الشاعر:») is a بيت — keep it on
+      // its own line and mark it as a verse, unless it's clearly prose (long) or
+      // another intro.
+      if (expectVerse) {
+        expectVerse = false;
+        // a بيت is pure poetry — no آية braces, citation brackets or colons (those
+        // mark prose), and short enough not to be a runaway paragraph.
+        if (/[ء-ي]/.test(b.text) && normalize(b.text).length <= 160
+            && !/[{}﴿﴾\[\]:]/.test(b.text) && !POETRY_INTRO(b.text)) {
+          flush(); flowed.push({ text: b.text, refs: (b.refs || []).slice(), verse: true }); continue;
+        }
+      }
       if (senses && SENSE_WRAP_RE.test(b.text)) flush();   // a sense marker leads a fresh paragraph
       if (!buf) buf = { text: b.text, refs: (b.refs || []).slice() };
       else { buf.text = buf.text.replace(/\s+$/, "") + " " + b.text.trim(); if (b.refs) buf.refs.push(...b.refs); }
-      if (/[.؟!]\s*$/.test(buf.text)) flush();
+      if (POETRY_INTRO(buf.text)) { flush(); expectVerse = true; }
+      else if (/[.؟!]\s*$/.test(buf.text)) flush();
     }
     flush();
   }
@@ -800,7 +823,7 @@ function cardBody(text, own, src, head) {
   // so drop them — along with their inline «N» reference markers — for a clean
   // read. Āyāt, verses and Bushro morphology stay.
   let mainHtml = "", morphHtml = "";
-  for (const { text: p, ayah, hadith, gloss, lead } of flowed) {
+  for (const { text: p, ayah, hadith, gloss, lead, verse } of flowed) {
     if (bushro && MORPH_HEAD.test(p)) {
       const fmt = formatBushroMorph(p, head);
       morphHtml += '<p class="para morph">' + (fmt || esc(p)) + '</p>';
@@ -829,7 +852,7 @@ function cardBody(text, own, src, head) {
       continue;
     }
     if (FOOTNOTE_HEAD.test(p)) continue;            // drop editor footnotes
-    const isVerse = !bushro && VERSE_RE.test(p);
+    const isVerse = !bushro && (verse || VERSE_RE.test(p));
     // Drop the now-orphan «(N)» footnote-reference markers (the footnotes they
     // pointed at are gone). Done after the footnote check so «— (N)…»/«(N).…»
     // heads are still recognised; «(N): page» refs (with a colon) are kept.
