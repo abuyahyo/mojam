@@ -849,8 +849,15 @@ function cardBody(text, own, src, head) {
     }
     if (ayah) {
       const head = lead ? esc(lead) + " " : "";
-      const tail = gloss ? (/^[؛،]/.test(gloss) ? "" : " ") + esc(gloss) : "";
-      mainHtml += '<p class="para">' + head + '<span class="ayah">﴿' + esc(cleanAyah(p)) + '﴾</span>' + tail + '</p>';
+      // Peel a gloss glued onto the verse in the same paragraph («…باقيةٍ؟ أَي
+      // بقاءٍ») so it stays black outside the ﴿…﴾. Anchored to a sentence stop +
+      // «أَيْ »: «أيّ» (which, with shadda) inside a verse can't match.
+      let core = p, gl = "";
+      const m = core.match(/[؟؛،.]\s*(أَ?يْ?\s[\s\S]*)$/);
+      if (m) { gl = core.slice(m.index + 1).trim(); core = core.slice(0, m.index + 1); }
+      let tail = gl ? " " + esc(gl) : "";
+      if (gloss) tail += (/^[؛،]/.test(gloss) ? "" : " ") + esc(gloss);
+      mainHtml += '<p class="para">' + head + '<span class="ayah">﴿' + esc(cleanAyah(core)) + '﴾</span>' + tail + '</p>';
       continue;
     }
     if (hadith) {
