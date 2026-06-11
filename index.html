@@ -361,6 +361,15 @@ const tol = w => [...w].join(TT);
 const HAD_RE = new RegExp("((?:في\\s+)?(?:" + [tol("الحديث"), tol("حديث"), tol("الخبر")].join("|") + ")[^«»]{0,12})«([^»]+)»", "g");
 const styleHadith = s => s.replace(HAD_RE, (m, a, c) => a + '<span class="hadith">«' + c + '»</span>');
 
+/* A Prophet's saying cited inline is also a hadith: «… عليه الصلاة والسلام، «X»،
+ * وقال: «Y»». Colour the «…» quote(s) that follow the blessing formula, including
+ * any «، (و)قال: «…»» continuations (but not «وقال تعالى: {آية}»). */
+const PROPHET_FORMULA = "(?:" + [tol("صلى الله عليه وسلم"), tol("صلي الله عليه وسلم"),
+  tol("عليه الصلاة والسلام"), tol("عليه السلام")].join("|") + ")";
+const PROPHET_SAYING_RE = new RegExp(PROPHET_FORMULA + "[،\\s]*«[^»]+»(?:[،\\s]*(?:و?قال)[:\\s]*«[^»]+»)*", "g");
+const styleProphetHadith = s => s.replace(PROPHET_SAYING_RE,
+  run => run.replace(/«([^»]+)»/g, '<span class="hadith">«$1»</span>'));
+
 /* Cross-reference links: parenthesised root names like (كتب) inside text
  * become clickable when the inner text matches a known root. Skip linking
  * to the entry's own root to avoid self-loops. */
@@ -460,6 +469,7 @@ const FOOTNOTE_HEAD = /^\s*(?:[—–-]\s*\(\s*[0-9٠-٩]+\s*\)|\(\s*[0-9٠-٩]+
 
 function styleParagraph(p, own, senses, bushroNum) {
   let s = esc(p);
+  s = styleProphetHadith(s);
   s = styleHadith(s);
   s = linkifyXref(s, own || "");
   s = styleQuran(s);
