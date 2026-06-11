@@ -699,6 +699,7 @@ const BUSHRO_ABBR_RE = new RegExp("\\b(?:" +
   Object.keys(BUSHRO_ABBR).map(a => a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")", "g");
 function expandBushroAbbr(t) {
   t = t.replace(/\btush\.\s*k\./g, "tushum kelishigi");          // accusative-case note
+  t = t.replace(/\bva\s+b\.(?!\w)/g, "va boshqalar");           // «va b.» = etc.
   t = t.replace(BUSHRO_ABBR_RE, m => BUSHRO_ABBR[m] || m);
   t = t.replace(/(^|[^a-z'.؀-ۿ])([kn])\.(?![a-z'])/g, (_m, p, c) => p + (c === "k" ? "kim" : "nima"));
   return t;
