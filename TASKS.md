@@ -10,6 +10,8 @@
 - [x] Fix U+143F (ᐿ) — 9 replacements in 4 entries → `ه`
 - [x] Fix U+1435 (ᐵ) — 2 replacements in 1 entry → `ل`
 - [x] Bump DATA_VERSION v6→v7 in sw.js
+- [x] Expand Arabic Presentation Forms ligatures (U+FD40-FDFF) to readable text in maqayis.json — 293 replacements in 14 character types
+- [x] Bump DATA_VERSION v7→v8 in sw.js
 - [x] Push to main
 
 ## Remaining
