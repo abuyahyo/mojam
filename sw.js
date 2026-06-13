@@ -20,7 +20,7 @@ const VERSION = "v20260611051954";
 // hook only bumps VERSION, so routine deploys (index.html/sw.js changes) keep the
 // ~15 MB of dictionary data cached instead of re-downloading it on every refresh.
 // Bump DATA_VERSION by hand only when the data/ files actually change.
-const DATA_VERSION = "v6";
+const DATA_VERSION = "v7";
 const SHELL_CACHE = "mojam-shell-" + VERSION;
 const DATA_CACHE  = "mojam-data-"  + DATA_VERSION;
 const LISAN_CACHE = "mojam-lisan-" + DATA_VERSION;
