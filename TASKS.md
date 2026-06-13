@@ -5,6 +5,7 @@
 ## In Progress
 
 ## Done
+- [x] Fix `وفي الحديث: «…»` highlighting in Maqayis — update `HAD_RE` regex in `index.html`
 - [x] Fix U+1434 (ᐴ) — 180 replacements in 107 bushro entries → `ال`/`ل`
 - [x] Fix U+143F (ᐿ) — 9 replacements in 4 entries → `ه`
 - [x] Fix U+1435 (ᐵ) — 2 replacements in 1 entry → `ل`

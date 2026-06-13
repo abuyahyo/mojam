@@ -358,7 +358,7 @@ function searchLisan(nq) {
 /* Hadith styling: «...» preceded by a context word (في الحديث / حديث / الخبر)
  * gets red emphasis. Optional tashkeel between letters of the context word. */
 const tol = w => [...w].join(TT);
-const HAD_RE = new RegExp("((?:في\\s+)?(?:" + [tol("الحديث"), tol("حديث"), tol("الخبر")].join("|") + ")[^«»]{0,12})«([^»]+)»", "g");
+const HAD_RE = new RegExp("((?:و?في\\s+)?(?:" + [tol("الحديث"), tol("حديث"), tol("الخبر")].join("|") + ")[^«»]{0,12})«([^»]+)»", "g");
 const styleHadith = s => s.replace(HAD_RE, (m, a, c) => a + '<span class="hadith">«' + c + '»</span>');
 
 /* A Prophet's saying cited inline is also a hadith: «… عليه الصلاة والسلام، «X»،
