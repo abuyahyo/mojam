@@ -2,6 +2,12 @@
 
 Guidance for working in this repo. See `README.md` for the user-facing overview.
 
+## Session workflow
+
+- **On start**: read `TASKS.md` to see what's in progress and what's done.
+- **During work**: update `TASKS.md` whenever you start/finish a task.
+- **On commit**: push `TASKS.md` changes along with the code so the next session picks up the latest state.
+
 ## What this is
 
 A static, no-build PWA that searches four Arabic dictionaries (Lisan al-Arab,
